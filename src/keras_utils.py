@@ -9,6 +9,13 @@ from src.label import Label
 from src.utils import getWH, nms
 from src.projection_utils import getRectPts, find_T_matrix
 
+import tensorflow as tf
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+tf.keras.backend.set_session(tf.Session(config=config))
+
+from tensorflow.keras.models import model_from_json
 
 class DLabel (Label):
 
@@ -28,7 +35,6 @@ def save_model(model,path,verbose=0):
 	if verbose: print('Saved to %s' % path)
 
 def load_model(path,custom_objects={},verbose=0):
-	from tensorflow.keras.models import model_from_json
 
 	path = splitext(path)[0]
 	with open('%s.json' % path,'r') as json_file:
