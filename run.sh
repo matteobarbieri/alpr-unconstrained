@@ -87,15 +87,19 @@ fi
 set -e
 
 # Detect vehicles
+echo "VEHICLE DETECTION"
 python vehicle-detection.py $input_dir $output_dir
 
 # Detect license plates
+echo "LICENSE PLATE DETECTION"
 python license-plate-detection.py $output_dir $lp_model
 
 # OCR
+echo "LICENSE PLATE OCR"
 python license-plate-ocr.py $output_dir
 
 # Draw output and generate list
+echo "DRAWING OUTPUTS"
 python gen-outputs.py $input_dir $output_dir > $csv_file
 
 # Clean files and draw output
