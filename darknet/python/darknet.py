@@ -125,7 +125,6 @@ def classify(net, meta, im):
     return res
 
 def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45):
-    print("here!")
     im = load_image(image, 0, 0)
     num = c_int(0)
     pnum = pointer(num)
