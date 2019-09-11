@@ -31,6 +31,7 @@ then
 fi
 
 lp_model="data/lp-detector/wpod-net_update1.h5"
+debug_mode=false
 input_dir=''
 output_dir=''
 csv_file=''
@@ -47,16 +48,18 @@ usage() {
 	echo "   -o   Output dir path"
 	echo "   -c   Output CSV file path"
 	echo "   -l   Path to Keras LP detector model (default = $lp_model)"
+    echo "   -d   Debug mode: do not delete tmp folders (default false)"
 	echo "   -h   Print this help information"
 	echo ""
 	exit 1
 }
 
-while getopts 'i:o:c:l:h' OPTION; do
+while getopts 'i:o:c:l:hd' OPTION; do
 	case $OPTION in
 		i) input_dir=$OPTARG;;
 		o) output_dir=$OPTARG;;
 		c) csv_file=$OPTARG;;
+		d) debug_mode=true;;
 		l) lp_model=$OPTARG;;
 		h) usage;;
 	esac
@@ -103,8 +106,10 @@ echo "DRAWING OUTPUTS"
 python gen-outputs.py $input_dir $output_dir > $csv_file
 
 # Clean files and draw output
-rm $output_dir/*_lp.png
-rm $output_dir/*car.png
-rm $output_dir/*_cars.txt
-rm $output_dir/*_lp.txt
-rm $output_dir/*_str.txt
+if [ "$debug_mode" = false ] ; then
+    rm $output_dir/*_lp.png
+    rm $output_dir/*car.png
+    rm $output_dir/*_cars.txt
+    rm $output_dir/*_lp.txt
+    rm $output_dir/*_str.txt
+fi
