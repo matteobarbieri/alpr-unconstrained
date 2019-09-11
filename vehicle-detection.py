@@ -21,12 +21,9 @@ if __name__ == '__main__':
 
         vehicle_threshold = .5
 
-        # vehicle_weights = b'data/vehicle-detector/yolo-voc.weights'
-        # vehicle_netcfg  = b'data/vehicle-detector/yolo-voc.cfg'
-        # vehicle_dataset = b'data/vehicle-detector/voc.data'
-
-        vehicle_weights = b'darknet/weights/yolov3.weights'
-        vehicle_netcfg = b'darknet/cfg/yolov3.cfg'
+        vehicle_weights = b'data/vehicle-detector/yolov3.weights'
+        vehicle_netcfg = b'data/vehicle-detector/yolov3.cfg'
+        # vehicle_netcfg = b'darknet/cfg/yolov3.cfg'
         vehicle_dataset = b'data/vehicle-detector/coco.data'
 
         vehicle_net = dn.load_net(vehicle_netcfg, vehicle_weights, 0)
