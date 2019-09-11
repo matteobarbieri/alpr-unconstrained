@@ -71,7 +71,8 @@ if __name__ == '__main__':
                     Lcars.append(label)
 
                     cv2.imwrite(
-                        '%s/%s_%dcar.png' % (output_dir, bname, i), Icar)
+                        # '%s/%s_%dcar.png' % (output_dir, bname, i), Icar)
+                        '%s/%s_car_%d.png' % (output_dir, bname, i), Icar)
 
                 lwrite('%s/%s_cars.txt' % (output_dir, bname), Lcars)
 
