@@ -98,22 +98,19 @@ echo "LICENSE PLATE DETECTION"
 # TODO fix the useless double argument?
 python simple-license-plate-detection.py $output_dir $output_dir
 
-echo "Stopping here"
-
 # OCR
 echo "LICENSE PLATE OCR"
 python license-plate-ocr.py $output_dir
 
-exit 0
-
 # Draw output and generate list
 echo "DRAWING OUTPUTS"
-python gen-outputs.py $input_dir $output_dir > $csv_file
+#python gen-outputs.py $input_dir $output_dir > $csv_file
+python gen-outputs-simple.py $input_dir $output_dir
 
 # Clean files and draw output
 if [ "$debug_mode" = false ] ; then
     rm $output_dir/*_lp.png
-    rm $output_dir/*car.png
+    rm $output_dir/*car_*.png
     rm $output_dir/*_cars.txt
     rm $output_dir/*_lp.txt
     rm $output_dir/*_str.txt

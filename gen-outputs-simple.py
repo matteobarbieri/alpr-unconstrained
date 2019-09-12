@@ -13,8 +13,14 @@ import pandas as pd
 
 import time
 
-TEXT_BG_COLOR = (203, 227, 21)
-TEXT_BG_COLOR = (0, 255, 0)
+TEXT_BG_COLOR = (203, 227, 21)  # acid green
+TEXT_BG_COLOR = (0, 255, 0)  # green
+TEXT_BG_COLOR = (252, 15, 192)  # pink
+
+# Icons
+SYMBOL_CAR = " "
+SYMBOL_BUS = ""
+SYMBOL_TRUCK = ""
 
 def parse_args():
 
@@ -42,7 +48,7 @@ def validate_lp_text(lp_text):
 
 
 def process_car_crop(car_id, car_row, base_image_name,
-                     img_full, pil_draw, font, args):
+                     img_full, pil_draw, font, font_large, args):
 
     # Extract size from img_full
     w, h = img_full.size
@@ -111,7 +117,7 @@ def process_car_crop(car_id, car_row, base_image_name,
 
                     # Draw a full rectangle for the LP background
                     # TODO replace fixed offset values with parameters
-                    TEXT_BOX_WIDTH = len(lp_text) * 20 + 5
+                    TEXT_BOX_WIDTH = (len(lp_text) + 2) * 20 + 5
                     TEXT_BOX_HEIGHT = 30
                     pil_draw.rectangle(
                         [
@@ -121,11 +127,18 @@ def process_car_crop(car_id, car_row, base_image_name,
                             lp_crop_y_absolute],
                         fill=TEXT_BG_COLOR)
 
+                    # Draw the symbol corresponding to the identified vehicle
+                    # TODO draw the correct symbol
+                    pil_draw.text(
+                        (lp_crop_x_absolute + 5,
+                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 8),
+                         SYMBOL_CAR, (0, 0, 0), font=font_large)
+
                     # Finally, write the actual LP text in the square
                     pil_draw.text(
-                        (lp_crop_x_absolute + 2,
-                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 5),
-                        lp_text, (0, 0, 0), font=font)
+                        (lp_crop_x_absolute + 5 + 35,
+                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 2),
+                         lp_text, (0, 0, 0), font=font)
 
                     # A rect around the car (for DEBUG)
                     # pil_draw.rectangle(
@@ -149,7 +162,7 @@ def process_car_crop(car_id, car_row, base_image_name,
         pass
 
 
-def process_image(img_path, font, args):
+def process_image(img_path, font, font_large, args):
     """
     Take as input the path of one input image and the arguments passed to the
     script and proceeds to retrieving all required information to display the
@@ -180,7 +193,8 @@ def process_image(img_path, font, args):
     for car_id, car_row in cars_df.iterrows():
 
         process_car_crop(
-            car_id, car_row, base_image_name, img_full, pil_draw, font, args)
+            car_id, car_row, base_image_name, img_full, pil_draw,
+            font, font_large, args)
 
     toc = time.time()
 
@@ -199,19 +213,24 @@ def main():
 
     args = parse_args()
 
+    font_filename = \
+        "DejaVu Sans Mono Nerd Font Complete Mono.ttf"
+
+    # Load the font used to write license plates text above actual recognized
+    # plates.
     font = ImageFont.truetype(
-        os.path.join('data', 'fonts', "OpenSans-Regular.ttf"), size=30)
+        os.path.join('data', 'fonts', font_filename), size=30)
+
+    # Load a second copy of the font for symbols
+    font_large = ImageFont.truetype(
+        os.path.join('data', 'fonts', font_filename), size=40)
+
 
     # Retrieve the names of the input images
     imgs_paths = image_files_from_folder(args.input_folder)
 
     for img_path in imgs_paths:
-        process_image(img_path, font, args)
-
-        # TODO debug, remove
-        break
-
-    # print(imgs_paths)
+        process_image(img_path, font, font_large, args)
 
 
 if __name__ == "__main__":
