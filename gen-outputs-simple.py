@@ -2,7 +2,7 @@ import argparse
 
 import os
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 # from glob import glob
 
@@ -13,6 +13,8 @@ import pandas as pd
 
 import time
 
+TEXT_BG_COLOR = (203, 227, 21)
+TEXT_BG_COLOR = (0, 255, 0)
 
 def parse_args():
 
@@ -40,7 +42,7 @@ def validate_lp_text(lp_text):
 
 
 def process_car_crop(car_id, car_row, base_image_name,
-                     img_full, pil_draw, args):
+                     img_full, pil_draw, font, args):
 
     # Extract size from img_full
     w, h = img_full.size
@@ -95,17 +97,35 @@ def process_car_crop(car_id, car_row, base_image_name,
                     lp_crop_x_absolute = lp_crop_x + car_crop_x
                     lp_crop_y_absolute = lp_crop_y + car_crop_y
 
-                    print("Drawing rectangle at {}, {} ({})".format(
-                        lp_crop_x_absolute, lp_crop_y_absolute, lp_text))
+                    # print("Drawing rectangle at {}, {} ({})".format(
+                        # lp_crop_x_absolute, lp_crop_y_absolute, lp_text))
 
-                    # Draw the rectangle
+                    # Draw the outline of the license plate
                     pil_draw.rectangle(
                         [
                             lp_crop_x_absolute,
                             lp_crop_y_absolute,
                             lp_crop_x_absolute + lp_crop_w,
                             lp_crop_y_absolute + lp_crop_h],
-                        outline=(0, 255, 0), width=2)
+                        outline=TEXT_BG_COLOR, width=3)
+
+                    # Draw a full rectangle for the LP background
+                    # TODO replace fixed offset values with parameters
+                    TEXT_BOX_WIDTH = len(lp_text) * 20 + 5
+                    TEXT_BOX_HEIGHT = 30
+                    pil_draw.rectangle(
+                        [
+                            lp_crop_x_absolute,
+                            lp_crop_y_absolute - TEXT_BOX_HEIGHT,
+                            lp_crop_x_absolute + TEXT_BOX_WIDTH,
+                            lp_crop_y_absolute],
+                        fill=TEXT_BG_COLOR)
+
+                    # Finally, write the actual LP text in the square
+                    pil_draw.text(
+                        (lp_crop_x_absolute + 2,
+                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 5),
+                        lp_text, (0, 0, 0), font=font)
 
                     # A rect around the car (for DEBUG)
                     # pil_draw.rectangle(
@@ -129,7 +149,7 @@ def process_car_crop(car_id, car_row, base_image_name,
         pass
 
 
-def process_image(img_path, args):
+def process_image(img_path, font, args):
     """
     Take as input the path of one input image and the arguments passed to the
     script and proceeds to retrieving all required information to display the
@@ -160,7 +180,7 @@ def process_image(img_path, args):
     for car_id, car_row in cars_df.iterrows():
 
         process_car_crop(
-            car_id, car_row, base_image_name, img_full, pil_draw, args)
+            car_id, car_row, base_image_name, img_full, pil_draw, font, args)
 
     toc = time.time()
 
@@ -179,11 +199,14 @@ def main():
 
     args = parse_args()
 
+    font = ImageFont.truetype(
+        os.path.join('data', 'fonts', "OpenSans-Regular.ttf"), size=30)
+
     # Retrieve the names of the input images
     imgs_paths = image_files_from_folder(args.input_folder)
 
     for img_path in imgs_paths:
-        process_image(img_path, args)
+        process_image(img_path, font, args)
 
         # TODO debug, remove
         break
