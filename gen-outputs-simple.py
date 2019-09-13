@@ -123,6 +123,9 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
         Between 0 and 1, the length of the central top line
     """
 
+    # Create a transparent version of the color
+    bg_color_transparent = (*bg_color, 128)
+
     # Adjust geometry to take padding into account
     x_p = x - padding
     y_p = y - padding
@@ -166,7 +169,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     pil_draw.rectangle(
         [x_symbol, y_symbol, x_symbol+TEXT_BOX_HEIGHT,
          y_symbol + TEXT_BOX_HEIGHT],
-        fill=bg_color)
+        fill=bg_color_transparent)
 
     # Compute coordinates for the acutal LP text
     x_text = x_symbol + TEXT_BOX_HEIGHT + 5
@@ -175,7 +178,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     # Draw the rectangle for the text
     pil_draw.rectangle(
         [x_text, y_text, x_text+TEXT_BOX_WIDTH, y_text + TEXT_BOX_HEIGHT],
-        fill=bg_color)
+        fill=bg_color_transparent)
 
     # Draw the symbol corresponding to the identified vehicle
     pil_draw.text(
@@ -348,7 +351,8 @@ def process_image(img_path, font, font_large, args):
     # Load the entire image
     img_full = Image.open(img_path)
 
-    pil_draw = ImageDraw.Draw(img_full)
+    # pil_draw = ImageDraw.Draw(img_full)
+    pil_draw = ImageDraw.Draw(img_full, mode='RGBA')
 
     tic = time.time()
 

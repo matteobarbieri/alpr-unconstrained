@@ -3,7 +3,6 @@ import numpy as np
 
 from os.path import isfile
 
-
 class Label:
 
     def __init__(self, cl=-1,
