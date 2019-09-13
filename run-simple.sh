@@ -107,6 +107,8 @@ echo "DRAWING OUTPUTS"
 #python gen-outputs.py $input_dir $output_dir > $csv_file
 python gen-outputs-simple.py $input_dir $output_dir
 
+#exit 0
+
 # Clean files and draw output
 if [ "$debug_mode" = false ] ; then
     rm $output_dir/*_lp.png

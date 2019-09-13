@@ -51,7 +51,7 @@ if __name__ == '__main__':
             # R = [r for r in R if r[0] in [b'car', b'bus']]
             R = [r for r in R if r[0] in [b'car', b'bus', b'truck']]
 
-            print('\t\t%d cars found' % len(R))
+            print('\t\t%d vehicles found' % len(R))
 
             if len(R):
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                         np.array(r[2])/np.concatenate((WH, WH))).tolist()
                     tl = np.array([cx - w/2., cy - h/2.])
                     br = np.array([cx + w/2., cy + h/2.])
-                    label = Label(0, tl, br)
+                    label = Label(0, tl, br, category=r[0].decode("utf-8"))
                     Icar = crop_region(Iorig, label)
 
                     Lcars.append(label)
@@ -74,7 +74,9 @@ if __name__ == '__main__':
                         # '%s/%s_%dcar.png' % (output_dir, bname, i), Icar)
                         '%s/%s_car_%d.png' % (output_dir, bname, i), Icar)
 
-                lwrite('%s/%s_cars.txt' % (output_dir, bname), Lcars)
+                lwrite(
+                    '%s/%s_cars.txt' % (output_dir, bname),
+                    Lcars, write_category_names=True)
 
     except:
         traceback.print_exc()

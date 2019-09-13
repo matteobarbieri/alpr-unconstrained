@@ -22,6 +22,12 @@ SYMBOL_CAR = " "
 SYMBOL_BUS = ""
 SYMBOL_TRUCK = ""
 
+VEHICLE_SYMBOLS = {
+    'car': SYMBOL_CAR,
+    'bus': SYMBOL_BUS,
+    'truck': SYMBOL_TRUCK,
+}
+
 # TODO move somewhere else
 import re
 # LP_PATTERN = re.compile("[A-F]{2}[\d]{3}[A-Z]{2}")
@@ -51,6 +57,23 @@ def validate_lp_text(lp_text):
     """
 
     return LP_PATTERN.match(lp_text) is not None
+
+
+def format_lp(lp_text):
+    """
+    Add spaces in lp text to improve readability
+
+    From:
+
+        AB123FW
+
+    To:
+
+        AB 123 FW
+
+    """
+
+    return lp_text[:2] + " " + lp_text[2:5] + " " + lp_text[5:]
 
 
 def outline_bounding_box(x, y, w, h, pil_draw, color):
@@ -83,7 +106,6 @@ def outline_bounding_box(x, y, w, h, pil_draw, color):
     pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=3)
 
 
-
 def process_car_crop(car_id, car_row, base_image_name,
                      img_full, pil_draw, font, font_large, args):
 
@@ -94,10 +116,11 @@ def process_car_crop(car_id, car_row, base_image_name,
     car_crop_w = car_row.w * w
     car_crop_h = car_row.h * h
 
-    # car_crop_x = car_row.x * w
-    # car_crop_y = car_row.y * h
     car_crop_x = car_row.x * w - car_crop_w/2
     car_crop_y = car_row.y * h - car_crop_h/2
+
+    # Extract category of the vehicle
+    vehicle_category = car_row.category
 
     # Look for all detected licence plates for that car (most of the time
     # it's just one)
@@ -157,9 +180,13 @@ def process_car_crop(car_id, car_row, base_image_name,
                             lp_crop_y_absolute + lp_crop_h],
                         outline=TEXT_BG_COLOR, width=3)
 
+                    # Beautify license plate text
+                    lp_text_formatted = format_lp(lp_text)
+
                     # Draw a full rectangle for the LP background
                     # TODO replace fixed offset values with parameters
-                    TEXT_BOX_WIDTH = (len(lp_text) + 2) * 20 + 5
+                    # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 20 + 5
+                    TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 19
                     TEXT_BOX_HEIGHT = 30
                     pil_draw.rectangle(
                         [
@@ -174,26 +201,15 @@ def process_car_crop(car_id, car_row, base_image_name,
                     pil_draw.text(
                         (lp_crop_x_absolute + 5,
                             lp_crop_y_absolute - TEXT_BOX_HEIGHT - 8),
-                         SYMBOL_CAR, (0, 0, 0), font=font_large)
+                         # SYMBOL_CAR, (0, 0, 0), font=font_large)
+                         VEHICLE_SYMBOLS[vehicle_category],
+                         (0, 0, 0), font=font_large)
 
                     # Finally, write the actual LP text in the square
                     pil_draw.text(
                         (lp_crop_x_absolute + 5 + 35,
                             lp_crop_y_absolute - TEXT_BOX_HEIGHT - 2),
-                         lp_text, (0, 0, 0), font=font)
-
-                    # A rect around the car (for DEBUG)
-                    # pil_draw.rectangle(
-                        # [
-                            # car_crop_x,
-                            # car_crop_y,
-                            # car_crop_x + car_crop_w,
-                            # car_crop_y + car_crop_h],
-                        # outline=(0, 255, 0), width=2)
-
-                # DEBUG remove
-                # print("Text for {} car {}: {}".format(
-                    # base_image_name[:-4], car_id, lp_text))
+                         lp_text_formatted, (0, 0, 0), font=font)
 
             except Exception as e:
                 print(e)
@@ -229,7 +245,7 @@ def process_image(img_path, font, font_large, args):
         os.path.join(
             args.aux_folder, "{}_cars.txt".format(base_image_name[:-4])),
         header=None, sep=' ',
-        names=['cc', 'x', 'y', 'w', 'h'])
+        names=['cc', 'x', 'y', 'w', 'h', 'category'])
 
     # for car_id, car_row in enumerate(cars_df.iterrows()):
     for car_id, car_row in cars_df.iterrows():
