@@ -22,6 +22,12 @@ SYMBOL_CAR = " "
 SYMBOL_BUS = ""
 SYMBOL_TRUCK = ""
 
+# TODO move somewhere else
+import re
+# LP_PATTERN = re.compile("[A-F]{2}[\d]{3}[A-Z]{2}")
+LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -43,8 +49,39 @@ def validate_lp_text(lp_text):
     Optional step to validate license plate
     E.g.: italian ones should be two letters, three digits and two letters
     """
-    # TODO replace with something better
-    return True
+
+    return LP_PATTERN.match(lp_text) is not None
+
+
+def outline_bounding_box(x, y, w, h, pil_draw, color):
+    """
+    Draw an outline for a bounding box
+    """
+
+    # Determine which is the shorter side
+    min_len = min(h, h)
+
+    # Determine segment length
+    segment_length = min(min_len/3, 50)
+
+    # Now draw two lines for each corner
+
+    # NW
+    pil_draw.line([x, y, x+segment_length, y], fill=color, width=3)
+    pil_draw.line([x, y, x, y+segment_length], fill=color, width=3)
+
+    # NE
+    pil_draw.line([x+w-segment_length, y, x+w, y], fill=color, width=3)
+    pil_draw.line([x+w, y, x+w, y+segment_length], fill=color, width=3)
+
+    # SE
+    pil_draw.line([x+w-segment_length, y+h, x+w, y+h], fill=color, width=3)
+    pil_draw.line([x+w, y+h-segment_length, x+w, y+h], fill=color, width=3)
+
+    # SW
+    pil_draw.line([x, y+h, x+segment_length, y+h], fill=color, width=3)
+    pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=3)
+
 
 
 def process_car_crop(car_id, car_row, base_image_name,
@@ -105,6 +142,11 @@ def process_car_crop(car_id, car_row, base_image_name,
 
                     # print("Drawing rectangle at {}, {} ({})".format(
                         # lp_crop_x_absolute, lp_crop_y_absolute, lp_text))
+
+                    # Draw a cool outline of the vehicle
+                    outline_bounding_box(
+                        car_crop_x, car_crop_y, car_crop_w,car_crop_h,
+                        pil_draw, (0, 255, 0))
 
                     # Draw the outline of the license plate
                     pil_draw.rectangle(
