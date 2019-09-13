@@ -13,9 +13,10 @@ import pandas as pd
 
 import time
 
-TEXT_BG_COLOR = (203, 227, 21)  # acid green
-TEXT_BG_COLOR = (0, 255, 0)  # green
+# TEXT_BG_COLOR = (203, 227, 21)  # acid green
+# TEXT_BG_COLOR = (0, 255, 0)  # green
 TEXT_BG_COLOR = (252, 15, 192)  # pink
+TEXT_FG_COLOR = (0, 0, 0)  # black
 
 # Icons
 SYMBOL_CAR = " "
@@ -73,21 +74,13 @@ def format_lp(lp_text):
 
     """
 
-    return lp_text[:2] + " " + lp_text[2:5] + " " + lp_text[5:]
+    return lp_text
+    # return lp_text[:2] + " " + lp_text[2:5] + " " + lp_text[5:]
 
+def draw_corners(x, y, w, h, segment_length,
+                 pil_draw, color=(0, 255, 0), width=3):
 
-def outline_bounding_box(x, y, w, h, pil_draw, color):
-    """
-    Draw an outline for a bounding box
-    """
-
-    # Determine which is the shorter side
-    min_len = min(h, h)
-
-    # Determine segment length
-    segment_length = min(min_len/3, 50)
-
-    # Now draw two lines for each corner
+    # Draw two lines for each corner
 
     # NW
     pil_draw.line([x, y, x+segment_length, y], fill=color, width=3)
@@ -104,6 +97,148 @@ def outline_bounding_box(x, y, w, h, pil_draw, color):
     # SW
     pil_draw.line([x, y+h, x+segment_length, y+h], fill=color, width=3)
     pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=3)
+
+
+def outline_bounding_box(x, y, w, h, pil_draw, color):
+    """
+    Draw an outline for a bounding box
+    """
+
+    # Determine which is the shorter side
+    min_len = min(h, h)
+
+    # Determine segment length
+    segment_length = min(min_len/3, 50)
+
+    # Draw corners
+    draw_corners(x, y, w, h, segment_length, pil_draw, color=color, width=3)
+
+
+def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
+                            font, font_large,
+                            padding, segment_length_ratio, line_length_ratio,
+                            vehicle_category, bg_color, fg_color):
+    """
+    line_length_ration : float
+        Between 0 and 1, the length of the central top line
+    """
+
+    # Adjust geometry to take padding into account
+    x_p = x - padding
+    y_p = y - padding
+    w_p = w + 2 * padding
+    h_p = h + 2 * padding
+
+    # Compute length of corner segment in pixel
+    segment_length = w_p * segment_length_ratio
+
+    # Draw corners
+    draw_corners(x_p, y_p, w_p, h_p, segment_length,
+                 pil_draw, color=bg_color, width=3)
+
+    # Compute the length of the horizontal line
+    line_length = w_p * line_length_ratio
+    line_height = 1.5 * line_length
+
+    # Compute x coordinate of the lp center
+    x_c = x_p + w_p/2
+
+    # Draw the horizontal line
+    pil_draw.line([x_c - line_length/2, y_p, x_c + line_length/2, y_p],
+                  fill=bg_color, width=3)
+
+    # Draw the vertical line
+    pil_draw.line([x_c, y_p-line_height, x_c, y_p],
+                  fill=bg_color, width=3)
+
+    # Compute coordinates for the label
+    x_symbol = x_c + 8
+    y_symbol = y_p - line_height
+
+    # Beautify license plate text
+    lp_text_formatted = format_lp(lp_text)
+
+    # Draw the square for the symbol
+    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 19
+    TEXT_BOX_HEIGHT = 30
+
+    # Draw the rectangle for the symbol
+    pil_draw.rectangle(
+        [x_symbol, y_symbol, x_symbol+TEXT_BOX_HEIGHT,
+         y_symbol + TEXT_BOX_HEIGHT],
+        fill=bg_color)
+
+    # Compute coordinates for the acutal LP text
+    x_text = x_symbol + TEXT_BOX_HEIGHT + 5
+    y_text = y_symbol
+
+    # Draw the rectangle for the text
+    pil_draw.rectangle(
+        [x_text, y_text, x_text+TEXT_BOX_WIDTH, y_text + TEXT_BOX_HEIGHT],
+        fill=bg_color)
+
+    # Draw the symbol corresponding to the identified vehicle
+    pil_draw.text(
+        (x_symbol + 3, y_symbol - 8),
+        VEHICLE_SYMBOLS[vehicle_category],
+        fg_color, font=font_large)
+
+    # Finally, write the actual LP text in the square
+    pil_draw.text(
+        (x_text + 5, y_text - 2),
+        lp_text_formatted, fg_color, font=font)
+
+
+def annotate_license_plate(x, y, w, h, lp_text, pil_draw,
+                           font, font_large,
+                           vehicle_category, bg_color, fg_color):
+    """
+    Draw an outline for a bounding box
+
+    bg_color : tuple
+        Color of background box, lines etc.
+
+    fg_color : tuple
+        Color of the text
+    """
+
+
+    # Draw the outline of the license plate
+    pil_draw.rectangle(
+        [
+            x,
+            y,
+            x + w,
+            y + h],
+        outline=bg_color, width=3)
+
+    # Beautify license plate text
+    lp_text_formatted = format_lp(lp_text)
+
+    # Draw a full rectangle for the LP background
+    # TODO replace fixed offset values with parameters
+    # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 20 + 5
+    TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 19
+    TEXT_BOX_HEIGHT = 30
+    pil_draw.rectangle(
+        [
+            x,
+            y - TEXT_BOX_HEIGHT,
+            x + TEXT_BOX_WIDTH,
+            y],
+        fill=bg_color)
+
+    # Draw the symbol corresponding to the identified vehicle
+    # TODO draw the correct symbol
+    pil_draw.text(
+        (x + 5, y - TEXT_BOX_HEIGHT - 8),
+        VEHICLE_SYMBOLS[vehicle_category],
+        fg_color, font=font_large)
+
+    # Finally, write the actual LP text in the square
+    pil_draw.text(
+        (x + 5 + 35, y - TEXT_BOX_HEIGHT - 2),
+        lp_text_formatted, fg_color, font=font)
 
 
 def process_car_crop(car_id, car_row, base_image_name,
@@ -171,48 +306,25 @@ def process_car_crop(car_id, car_row, base_image_name,
                         car_crop_x, car_crop_y, car_crop_w,car_crop_h,
                         pil_draw, (0, 255, 0))
 
-                    # Draw the outline of the license plate
-                    pil_draw.rectangle(
-                        [
-                            lp_crop_x_absolute,
-                            lp_crop_y_absolute,
-                            lp_crop_x_absolute + lp_crop_w,
-                            lp_crop_y_absolute + lp_crop_h],
-                        outline=TEXT_BG_COLOR, width=3)
+                    # Draw license plate annotation
+                    # annotate_license_plate(
+                        # lp_crop_x_absolute, lp_crop_y_absolute,
+                        # lp_crop_w, lp_crop_h, lp_text, pil_draw,
+                        # font, font_large,
+                        # vehicle_category,
+                        # TEXT_BG_COLOR, TEXT_FG_COLOR)
 
-                    # Beautify license plate text
-                    lp_text_formatted = format_lp(lp_text)
+                    annotate_license_plate2(
+                        lp_crop_x_absolute, lp_crop_y_absolute,
+                        lp_crop_w, lp_crop_h, lp_text, pil_draw,
+                        font, font_large,
+                        10, 0.15, 0.4,
+                        vehicle_category,
+                        TEXT_BG_COLOR, TEXT_FG_COLOR)
 
-                    # Draw a full rectangle for the LP background
-                    # TODO replace fixed offset values with parameters
-                    # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 20 + 5
-                    TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 19
-                    TEXT_BOX_HEIGHT = 30
-                    pil_draw.rectangle(
-                        [
-                            lp_crop_x_absolute,
-                            lp_crop_y_absolute - TEXT_BOX_HEIGHT,
-                            lp_crop_x_absolute + TEXT_BOX_WIDTH,
-                            lp_crop_y_absolute],
-                        fill=TEXT_BG_COLOR)
-
-                    # Draw the symbol corresponding to the identified vehicle
-                    # TODO draw the correct symbol
-                    pil_draw.text(
-                        (lp_crop_x_absolute + 5,
-                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 8),
-                         # SYMBOL_CAR, (0, 0, 0), font=font_large)
-                         VEHICLE_SYMBOLS[vehicle_category],
-                         (0, 0, 0), font=font_large)
-
-                    # Finally, write the actual LP text in the square
-                    pil_draw.text(
-                        (lp_crop_x_absolute + 5 + 35,
-                            lp_crop_y_absolute - TEXT_BOX_HEIGHT - 2),
-                         lp_text_formatted, (0, 0, 0), font=font)
 
             except Exception as e:
-                print(e)
+                # print(e)
                 pass
 
     except Exception as e:
