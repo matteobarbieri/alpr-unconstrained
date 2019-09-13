@@ -13,9 +13,10 @@ import pandas as pd
 
 import time
 
-# TEXT_BG_COLOR = (203, 227, 21)  # acid green
-# TEXT_BG_COLOR = (0, 255, 0)  # green
-TEXT_BG_COLOR = (252, 15, 192)  # pink
+COLOR_AZURE = (118, 166, 216)
+COLOR_GREEN = (151, 193, 75)
+COLOR_ORANGE = (252, 104, 0)
+
 TEXT_FG_COLOR = (0, 0, 0)  # black
 
 # Icons
@@ -29,10 +30,15 @@ VEHICLE_SYMBOLS = {
     'truck': SYMBOL_TRUCK,
 }
 
+VEHICLE_COLORS = {
+    'car': COLOR_AZURE,
+    'bus': COLOR_GREEN,
+    'truck': COLOR_ORANGE,
+}
+
 # TODO move somewhere else
 import re
-# LP_PATTERN = re.compile("[A-F]{2}[\d]{3}[A-Z]{2}")
-LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")
+LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")  # noqa
 
 
 def parse_args():
@@ -74,8 +80,9 @@ def format_lp(lp_text):
 
     """
 
-    return lp_text
     # return lp_text[:2] + " " + lp_text[2:5] + " " + lp_text[5:]
+    return lp_text
+
 
 def draw_corners(x, y, w, h, segment_length,
                  pil_draw, color=(0, 255, 0), width=3):
@@ -117,14 +124,18 @@ def outline_bounding_box(x, y, w, h, pil_draw, color):
 def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
                             font, font_large,
                             padding, segment_length_ratio, line_length_ratio,
-                            vehicle_category, bg_color, fg_color):
+                            vehicle_category):
     """
     line_length_ration : float
         Between 0 and 1, the length of the central top line
     """
 
+    bg_color = VEHICLE_COLORS[vehicle_category]
+    fg_color = (0, 0, 0)
+
     # Create a transparent version of the color
     bg_color_transparent = (*bg_color, 128)
+    bg_color_transparent = bg_color
 
     # Adjust geometry to take padding into account
     x_p = x - padding
@@ -169,7 +180,8 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     pil_draw.rectangle(
         [x_symbol, y_symbol, x_symbol+TEXT_BOX_HEIGHT,
          y_symbol + TEXT_BOX_HEIGHT],
-        fill=bg_color_transparent)
+        fill=bg_color_transparent,
+        outline=(0, 0, 0))
 
     # Compute coordinates for the acutal LP text
     x_text = x_symbol + TEXT_BOX_HEIGHT + 5
@@ -178,7 +190,8 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     # Draw the rectangle for the text
     pil_draw.rectangle(
         [x_text, y_text, x_text+TEXT_BOX_WIDTH, y_text + TEXT_BOX_HEIGHT],
-        fill=bg_color_transparent)
+        fill=bg_color_transparent,
+        outline=(0, 0, 0))
 
     # Draw the symbol corresponding to the identified vehicle
     pil_draw.text(
@@ -188,7 +201,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Finally, write the actual LP text in the square
     pil_draw.text(
-        (x_text + 5, y_text - 2),
+        (x_text + 4, y_text - 2),
         lp_text_formatted, fg_color, font=font)
 
 
@@ -204,7 +217,6 @@ def annotate_license_plate(x, y, w, h, lp_text, pil_draw,
     fg_color : tuple
         Color of the text
     """
-
 
     # Draw the outline of the license plate
     pil_draw.rectangle(
@@ -306,7 +318,7 @@ def process_car_crop(car_id, car_row, base_image_name,
 
                     # Draw a cool outline of the vehicle
                     outline_bounding_box(
-                        car_crop_x, car_crop_y, car_crop_w,car_crop_h,
+                        car_crop_x, car_crop_y, car_crop_w, car_crop_h,
                         pil_draw, (0, 255, 0))
 
                     # Draw license plate annotation
@@ -322,16 +334,14 @@ def process_car_crop(car_id, car_row, base_image_name,
                         lp_crop_w, lp_crop_h, lp_text, pil_draw,
                         font, font_large,
                         10, 0.15, 0.4,
-                        vehicle_category,
-                        TEXT_BG_COLOR, TEXT_FG_COLOR)
+                        vehicle_category)
 
-
-            except Exception as e:
+            except Exception as e:  # noqa
                 # print(e)
                 pass
 
-    except Exception as e:
-        print(e)
+    except Exception as e:  # noqa
+        # print(e)
         pass
 
 
@@ -398,7 +408,6 @@ def main():
     # Load a second copy of the font for symbols
     font_large = ImageFont.truetype(
         os.path.join('data', 'fonts', font_filename), size=40)
-
 
     # Retrieve the names of the input images
     imgs_paths = image_files_from_folder(args.input_folder)
