@@ -13,11 +13,15 @@ import pandas as pd
 
 import time
 
-COLOR_AZURE = (118, 166, 216)
-COLOR_GREEN = (151, 193, 75)
-COLOR_ORANGE = (252, 104, 0)
+# COLOR_AZURE = (118, 166, 216)
+# COLOR_GREEN = (151, 193, 75)
+# COLOR_ORANGE = (252, 104, 0)
 
-TEXT_FG_COLOR = (0, 0, 0)  # black
+COLOR_AZURE = (69, 180, 159)
+COLOR_GREEN = (225, 32, 122)
+COLOR_ORANGE = (238, 116, 33)
+
+TEXT_FG_COLOR = (16, 24, 32)  # black
 
 # Icons
 SYMBOL_CAR = " "
@@ -131,7 +135,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     """
 
     bg_color = VEHICLE_COLORS[vehicle_category]
-    fg_color = (0, 0, 0)
+    fg_color = TEXT_FG_COLOR
 
     # Create a transparent version of the color
     bg_color_transparent = (*bg_color, 128)
@@ -173,15 +177,17 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     lp_text_formatted = format_lp(lp_text)
 
     # Draw the square for the symbol
-    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 19
+    # TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 19
+    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21
     TEXT_BOX_HEIGHT = 30
 
     # Draw the rectangle for the symbol
     pil_draw.rectangle(
         [x_symbol, y_symbol, x_symbol+TEXT_BOX_HEIGHT,
          y_symbol + TEXT_BOX_HEIGHT],
-        fill=bg_color_transparent,
-        outline=(0, 0, 0))
+        # fill=bg_color_transparent,
+        fill=bg_color,
+        outline=TEXT_FG_COLOR)
 
     # Compute coordinates for the acutal LP text
     x_text = x_symbol + TEXT_BOX_HEIGHT + 5
@@ -190,8 +196,9 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     # Draw the rectangle for the text
     pil_draw.rectangle(
         [x_text, y_text, x_text+TEXT_BOX_WIDTH, y_text + TEXT_BOX_HEIGHT],
-        fill=bg_color_transparent,
-        outline=(0, 0, 0))
+        # fill=bg_color_transparent,
+        fill=(255, 255, 255),
+        outline=TEXT_FG_COLOR)
 
     # Draw the symbol corresponding to the identified vehicle
     pil_draw.text(
@@ -201,7 +208,8 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Finally, write the actual LP text in the square
     pil_draw.text(
-        (x_text + 4, y_text - 2),
+        # (x_text + 4, y_text - 2),  # for nerdfonts
+        (x_text + 4, y_text - 7),  # for open sans
         lp_text_formatted, fg_color, font=font)
 
 
@@ -319,7 +327,7 @@ def process_car_crop(car_id, car_row, base_image_name,
                     # Draw a cool outline of the vehicle
                     outline_bounding_box(
                         car_crop_x, car_crop_y, car_crop_w, car_crop_h,
-                        pil_draw, (0, 255, 0))
+                        pil_draw, (255, 255, 255))
 
                     # Draw license plate annotation
                     # annotate_license_plate(
@@ -398,6 +406,9 @@ def main():
     args = parse_args()
 
     font_filename = \
+        "OpenSans-Regular.ttf"
+
+    font_icons_filename = \
         "DejaVu Sans Mono Nerd Font Complete Mono.ttf"
 
     # Load the font used to write license plates text above actual recognized
@@ -407,7 +418,7 @@ def main():
 
     # Load a second copy of the font for symbols
     font_large = ImageFont.truetype(
-        os.path.join('data', 'fonts', font_filename), size=40)
+        os.path.join('data', 'fonts', font_icons_filename), size=40)
 
     # Retrieve the names of the input images
     imgs_paths = image_files_from_folder(args.input_folder)
