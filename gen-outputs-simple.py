@@ -30,6 +30,8 @@ SYMBOL_TRUCK = ""
 
 # Determine size
 SCALE = 2
+LINE_WIDTH = 5
+
 
 VEHICLE_SYMBOLS = {
     'car': SYMBOL_CAR,
@@ -97,20 +99,20 @@ def draw_corners(x, y, w, h, segment_length,
     # Draw two lines for each corner
 
     # NW
-    pil_draw.line([x, y, x+segment_length, y], fill=color, width=3)
-    pil_draw.line([x, y, x, y+segment_length], fill=color, width=3)
+    pil_draw.line([x, y, x+segment_length, y], fill=color, width=width)
+    pil_draw.line([x, y, x, y+segment_length], fill=color, width=width)
 
     # NE
-    pil_draw.line([x+w-segment_length, y, x+w, y], fill=color, width=3)
-    pil_draw.line([x+w, y, x+w, y+segment_length], fill=color, width=3)
+    pil_draw.line([x+w-segment_length, y, x+w, y], fill=color, width=width)
+    pil_draw.line([x+w, y, x+w, y+segment_length], fill=color, width=width)
 
     # SE
-    pil_draw.line([x+w-segment_length, y+h, x+w, y+h], fill=color, width=3)
-    pil_draw.line([x+w, y+h-segment_length, x+w, y+h], fill=color, width=3)
+    pil_draw.line([x+w-segment_length, y+h, x+w, y+h], fill=color, width=width)
+    pil_draw.line([x+w, y+h-segment_length, x+w, y+h], fill=color, width=width)
 
     # SW
-    pil_draw.line([x, y+h, x+segment_length, y+h], fill=color, width=3)
-    pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=3)
+    pil_draw.line([x, y+h, x+segment_length, y+h], fill=color, width=width)
+    pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=width)
 
 
 def outline_bounding_box(x, y, w, h, pil_draw, color):
@@ -125,7 +127,7 @@ def outline_bounding_box(x, y, w, h, pil_draw, color):
     segment_length = min(min_len/3, 50)
 
     # Draw corners
-    draw_corners(x, y, w, h, segment_length, pil_draw, color=color, width=3)
+    draw_corners(x, y, w, h, segment_length, pil_draw, color=color, width=LINE_WIDTH)
 
 
 def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
@@ -155,7 +157,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Draw corners
     draw_corners(x_p, y_p, w_p, h_p, segment_length,
-                 pil_draw, color=bg_color, width=3)
+                 pil_draw, color=bg_color, width=LINE_WIDTH)
 
     # Compute the length of the horizontal line
     line_length = w_p * line_length_ratio
@@ -169,11 +171,11 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Draw the horizontal line
     pil_draw.line([x_c - line_length/2, y_p, x_c + line_length/2, y_p],
-                  fill=bg_color, width=3)
+                  fill=bg_color, width=LINE_WIDTH)
 
     # Draw the vertical line
     pil_draw.line([x_c, y_p-line_height, x_c, y_p],
-                  fill=bg_color, width=3)
+                  fill=bg_color, width=LINE_WIDTH)
 
     # Compute coordinates for the label
     # x_symbol = x_c + 8
