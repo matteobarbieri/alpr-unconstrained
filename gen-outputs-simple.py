@@ -9,44 +9,20 @@ from PIL import Image, ImageDraw, ImageFont
 # from src.utils import crop_region, image_files_from_folder
 from src.utils import image_files_from_folder
 
+# Module which contains functions to draw annotations on image
+from annotation_utils import draw_corners, annotate_object
+
 import pandas as pd
 
 import time
 
-# COLOR_AZURE = (118, 166, 216)
-# COLOR_GREEN = (151, 193, 75)
-# COLOR_ORANGE = (252, 104, 0)
-
-COLOR_AZURE = (69, 180, 159)
-COLOR_GREEN = (225, 32, 122)
-COLOR_ORANGE = (238, 116, 33)
-
-TEXT_FG_COLOR = (16, 24, 32)  # black
-
-# Icons
-SYMBOL_CAR = " "
-SYMBOL_BUS = ""
-SYMBOL_TRUCK = ""
-
-# Determine size
-SCALE = 2
-LINE_WIDTH = 5
-
-
-VEHICLE_SYMBOLS = {
-    'car': SYMBOL_CAR,
-    'bus': SYMBOL_BUS,
-    'truck': SYMBOL_TRUCK,
-}
-
-VEHICLE_COLORS = {
-    'car': COLOR_AZURE,
-    'bus': COLOR_GREEN,
-    'truck': COLOR_ORANGE,
-}
-
 # TODO move somewhere else
 import re
+
+# Import parameters such as symbols and colors from separate file
+from constants import (
+    LINE_WIDTH, VEHICLE_SYMBOLS, VEHICLE_COLORS, TEXT_FG_COLOR, SCALE)
+
 LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")  # noqa
 
 
@@ -93,28 +69,6 @@ def format_lp(lp_text):
     return lp_text
 
 
-def draw_corners(x, y, w, h, segment_length,
-                 pil_draw, color=(0, 255, 0), width=3):
-
-    # Draw two lines for each corner
-
-    # NW
-    pil_draw.line([x, y, x+segment_length, y], fill=color, width=width)
-    pil_draw.line([x, y, x, y+segment_length], fill=color, width=width)
-
-    # NE
-    pil_draw.line([x+w-segment_length, y, x+w, y], fill=color, width=width)
-    pil_draw.line([x+w, y, x+w, y+segment_length], fill=color, width=width)
-
-    # SE
-    pil_draw.line([x+w-segment_length, y+h, x+w, y+h], fill=color, width=width)
-    pil_draw.line([x+w, y+h-segment_length, x+w, y+h], fill=color, width=width)
-
-    # SW
-    pil_draw.line([x, y+h, x+segment_length, y+h], fill=color, width=width)
-    pil_draw.line([x, y+h-segment_length, x, y+h], fill=color, width=width)
-
-
 def outline_bounding_box(x, y, w, h, pil_draw, color):
     """
     Draw an outline for a bounding box
@@ -127,101 +81,8 @@ def outline_bounding_box(x, y, w, h, pil_draw, color):
     segment_length = min(min_len/3, 50)
 
     # Draw corners
-    draw_corners(x, y, w, h, segment_length, pil_draw, color=color, width=LINE_WIDTH)
-
-
-def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
-                            font, font_large,
-                            padding, segment_length_ratio, line_length_ratio,
-                            vehicle_category):
-    """
-    line_length_ration : float
-        Between 0 and 1, the length of the central top line
-    """
-
-    bg_color = VEHICLE_COLORS[vehicle_category]
-    fg_color = TEXT_FG_COLOR
-
-    # Create a transparent version of the color
-    bg_color_transparent = (*bg_color, 128)
-    bg_color_transparent = bg_color
-
-    # Adjust geometry to take padding into account
-    x_p = x - padding
-    y_p = y - padding
-    w_p = w + 2 * padding
-    h_p = h + 2 * padding
-
-    # Compute length of corner segment in pixel
-    segment_length = w_p * segment_length_ratio
-
-    # Draw corners
-    draw_corners(x_p, y_p, w_p, h_p, segment_length,
-                 pil_draw, color=bg_color, width=LINE_WIDTH)
-
-    # Compute the length of the horizontal line
-    line_length = w_p * line_length_ratio
-    line_height = 1.5 * line_length
-
-    # Adapt line height to scale
-    line_height = line_height if SCALE == 1 else line_height * 1.5
-
-    # Compute x coordinate of the lp center
-    x_c = x_p + w_p/2
-
-    # Draw the horizontal line
-    pil_draw.line([x_c - line_length/2, y_p, x_c + line_length/2, y_p],
-                  fill=bg_color, width=LINE_WIDTH)
-
-    # Draw the vertical line
-    pil_draw.line([x_c, y_p-line_height, x_c, y_p],
-                  fill=bg_color, width=LINE_WIDTH)
-
-    # Compute coordinates for the label
-    # x_symbol = x_c + 8
-    x_symbol = x_c + 3 + SCALE * 5
-    y_symbol = y_p - line_height
-
-    # Beautify license plate text
-    lp_text_formatted = format_lp(lp_text)
-
-    # Draw the square for the symbol
-    # TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 19
-    # TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21
-    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21 * SCALE
-    TEXT_BOX_HEIGHT = 30 * SCALE
-
-    # Draw the rectangle for the symbol
-    pil_draw.rectangle(
-        [x_symbol, y_symbol, x_symbol+TEXT_BOX_HEIGHT,
-         y_symbol + TEXT_BOX_HEIGHT],
-        # fill=bg_color_transparent,
-        fill=bg_color,
-        outline=TEXT_FG_COLOR)
-
-    # Compute coordinates for the acutal LP text
-    x_text = x_symbol + TEXT_BOX_HEIGHT + 5 * SCALE
-    y_text = y_symbol
-
-    # Draw the rectangle for the text
-    pil_draw.rectangle(
-        [x_text, y_text, x_text+TEXT_BOX_WIDTH, y_text + TEXT_BOX_HEIGHT],
-        # fill=bg_color_transparent,
-        fill=(255, 255, 255),
-        outline=TEXT_FG_COLOR)
-
-    # Draw the symbol corresponding to the identified vehicle
-    pil_draw.text(
-        # (x_symbol + 3, y_symbol - 8),
-        (x_symbol + 3*SCALE, y_symbol - 3 - 5*SCALE),
-        VEHICLE_SYMBOLS[vehicle_category],
-        fg_color, font=font_large)
-
-    # Finally, write the actual LP text in the square
-    pil_draw.text(
-        # (x_text + 4, y_text - 2),  # for nerdfonts
-        (x_text + 4*SCALE, y_text - 7*SCALE),  # for open sans
-        lp_text_formatted, fg_color, font=font)
+    draw_corners(x, y, w, h, segment_length, pil_draw, color=color,
+                 width=LINE_WIDTH)
 
 
 # def annotate_license_plate(x, y, w, h, lp_text, pil_draw,
@@ -348,12 +209,25 @@ def process_car_crop(car_id, car_row, base_image_name,
                         # vehicle_category,
                         # TEXT_BG_COLOR, TEXT_FG_COLOR)
 
-                    annotate_license_plate2(
+                    # Beautify license plate text
+                    lp_text_formatted = format_lp(lp_text)
+
+                    # Actually annotate object
+                    annotate_object(
                         lp_crop_x_absolute, lp_crop_y_absolute,
-                        lp_crop_w, lp_crop_h, lp_text, pil_draw,
-                        font, font_large,
-                        10, 0.15, 0.4,
-                        vehicle_category)
+                        lp_crop_w, lp_crop_h, lp_text_formatted, pil_draw,
+                        font,
+                        10,  # padding
+                        0.15,  # segment_ratio
+                        0.4,  # line_length_ratio
+                        LINE_WIDTH,
+                        VEHICLE_COLORS[vehicle_category],  # outline color
+                        TEXT_FG_COLOR,  # text color
+                        (255, 255, 255),  # bg color
+                        SCALE,
+                        object_symbol=VEHICLE_SYMBOLS[vehicle_category],
+                        font_symbol=font_large,
+                        bg_color_symbol=VEHICLE_COLORS[vehicle_category])
 
             except Exception as e:  # noqa
                 # print(e)
