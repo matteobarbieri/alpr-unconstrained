@@ -28,6 +28,9 @@ SYMBOL_CAR = " "
 SYMBOL_BUS = ""
 SYMBOL_TRUCK = ""
 
+# Determine size
+SCALE = 2
+
 VEHICLE_SYMBOLS = {
     'car': SYMBOL_CAR,
     'bus': SYMBOL_BUS,
@@ -158,6 +161,9 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
     line_length = w_p * line_length_ratio
     line_height = 1.5 * line_length
 
+    # Adapt line height to scale
+    line_height = line_height if SCALE == 1 else line_height * 1.5
+
     # Compute x coordinate of the lp center
     x_c = x_p + w_p/2
 
@@ -170,7 +176,8 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
                   fill=bg_color, width=3)
 
     # Compute coordinates for the label
-    x_symbol = x_c + 8
+    # x_symbol = x_c + 8
+    x_symbol = x_c + 3 + SCALE * 5
     y_symbol = y_p - line_height
 
     # Beautify license plate text
@@ -178,8 +185,9 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Draw the square for the symbol
     # TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 19
-    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21
-    TEXT_BOX_HEIGHT = 30
+    # TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21
+    TEXT_BOX_WIDTH = (len(lp_text_formatted)) * 21 * SCALE
+    TEXT_BOX_HEIGHT = 30 * SCALE
 
     # Draw the rectangle for the symbol
     pil_draw.rectangle(
@@ -190,7 +198,7 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
         outline=TEXT_FG_COLOR)
 
     # Compute coordinates for the acutal LP text
-    x_text = x_symbol + TEXT_BOX_HEIGHT + 5
+    x_text = x_symbol + TEXT_BOX_HEIGHT + 5 * SCALE
     y_text = y_symbol
 
     # Draw the rectangle for the text
@@ -202,66 +210,67 @@ def annotate_license_plate2(x, y, w, h, lp_text, pil_draw,
 
     # Draw the symbol corresponding to the identified vehicle
     pil_draw.text(
-        (x_symbol + 3, y_symbol - 8),
+        # (x_symbol + 3, y_symbol - 8),
+        (x_symbol + 3*SCALE, y_symbol - 3 - 5*SCALE),
         VEHICLE_SYMBOLS[vehicle_category],
         fg_color, font=font_large)
 
     # Finally, write the actual LP text in the square
     pil_draw.text(
         # (x_text + 4, y_text - 2),  # for nerdfonts
-        (x_text + 4, y_text - 7),  # for open sans
+        (x_text + 4*SCALE, y_text - 7*SCALE),  # for open sans
         lp_text_formatted, fg_color, font=font)
 
 
-def annotate_license_plate(x, y, w, h, lp_text, pil_draw,
-                           font, font_large,
-                           vehicle_category, bg_color, fg_color):
-    """
-    Draw an outline for a bounding box
+# def annotate_license_plate(x, y, w, h, lp_text, pil_draw,
+                           # font, font_large,
+                           # vehicle_category, bg_color, fg_color):
+    # """
+    # Draw an outline for a bounding box
 
-    bg_color : tuple
-        Color of background box, lines etc.
+    # bg_color : tuple
+        # Color of background box, lines etc.
 
-    fg_color : tuple
-        Color of the text
-    """
+    # fg_color : tuple
+        # Color of the text
+    # """
 
-    # Draw the outline of the license plate
-    pil_draw.rectangle(
-        [
-            x,
-            y,
-            x + w,
-            y + h],
-        outline=bg_color, width=3)
+    # # Draw the outline of the license plate
+    # pil_draw.rectangle(
+        # [
+            # x,
+            # y,
+            # x + w,
+            # y + h],
+        # outline=bg_color, width=3)
 
-    # Beautify license plate text
-    lp_text_formatted = format_lp(lp_text)
+    # # Beautify license plate text
+    # lp_text_formatted = format_lp(lp_text)
 
-    # Draw a full rectangle for the LP background
-    # TODO replace fixed offset values with parameters
-    # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 20 + 5
-    TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 19
-    TEXT_BOX_HEIGHT = 30
-    pil_draw.rectangle(
-        [
-            x,
-            y - TEXT_BOX_HEIGHT,
-            x + TEXT_BOX_WIDTH,
-            y],
-        fill=bg_color)
+    # # Draw a full rectangle for the LP background
+    # # TODO replace fixed offset values with parameters
+    # # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 20 + 5
+    # TEXT_BOX_WIDTH = (len(lp_text_formatted) + 2) * 19
+    # TEXT_BOX_HEIGHT = 30
+    # pil_draw.rectangle(
+        # [
+            # x,
+            # y - TEXT_BOX_HEIGHT,
+            # x + TEXT_BOX_WIDTH,
+            # y],
+        # fill=bg_color)
 
-    # Draw the symbol corresponding to the identified vehicle
-    # TODO draw the correct symbol
-    pil_draw.text(
-        (x + 5, y - TEXT_BOX_HEIGHT - 8),
-        VEHICLE_SYMBOLS[vehicle_category],
-        fg_color, font=font_large)
+    # # Draw the symbol corresponding to the identified vehicle
+    # # TODO draw the correct symbol
+    # pil_draw.text(
+        # (x + 5, y - TEXT_BOX_HEIGHT - 8),
+        # VEHICLE_SYMBOLS[vehicle_category],
+        # fg_color, font=font_large)
 
-    # Finally, write the actual LP text in the square
-    pil_draw.text(
-        (x + 5 + 35, y - TEXT_BOX_HEIGHT - 2),
-        lp_text_formatted, fg_color, font=font)
+    # # Finally, write the actual LP text in the square
+    # pil_draw.text(
+        # (x + 5 + 35, y - TEXT_BOX_HEIGHT - 2),
+        # lp_text_formatted, fg_color, font=font)
 
 
 def process_car_crop(car_id, car_row, base_image_name,
@@ -414,11 +423,11 @@ def main():
     # Load the font used to write license plates text above actual recognized
     # plates.
     font = ImageFont.truetype(
-        os.path.join('data', 'fonts', font_filename), size=30)
+        os.path.join('data', 'fonts', font_filename), size=SCALE*30)
 
     # Load a second copy of the font for symbols
     font_large = ImageFont.truetype(
-        os.path.join('data', 'fonts', font_icons_filename), size=40)
+        os.path.join('data', 'fonts', font_icons_filename), size=SCALE*40)
 
     # Retrieve the names of the input images
     imgs_paths = image_files_from_folder(args.input_folder)
