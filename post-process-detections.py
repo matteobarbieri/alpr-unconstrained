@@ -62,13 +62,18 @@ def area(a, b):  # returns None if rectangles don't intersect
         return dx * dy
 
 
-def duplicate_license_exists(p, uid, plates):
+def duplicate_license_exists(p, uid, plates, ignore_car_ids):
     """
     Check if there is another license plate from a different vehicle with the
     same extracted text.
     """
 
     for v_id, op in plates:
+
+        # Skip already removed cars
+        if v_id in ignore_car_ids:
+            continue
+
         # if op['plate_text'] == p['plate_text'] and uid != v_id:
         if area(p['bounding_box'], op['bounding_box']) is not None \
                 and uid != v_id:
@@ -77,16 +82,18 @@ def duplicate_license_exists(p, uid, plates):
     return False
 
 
-def remove_duplicate_license(car, plates):
+def remove_duplicate_license(car, plates, ignore_car_ids):
     new_plates_list = list()
 
     for p in car['plates']:
 
-        if not duplicate_license_exists(p, car['uid'], plates):
+        if not duplicate_license_exists(p, car['uid'], plates, ignore_car_ids):
         # if (car['uid'], p['plate_text']) not in [  # noqa
                 # (uid, op['plate_text']) for (uid, op) in plates]:
 
             new_plates_list.append(p)
+        else:
+            ignore_car_ids.append(car['uid'])
 
     car['plates'] = new_plates_list
 
@@ -98,34 +105,30 @@ def remove_duplicates(annotations):
     uid = 1
 
     for c in annotations['cars']:
-        # num_plates_in_car = len(c['plates'])
-        # N += num_plates_in_car
         c['uid'] = uid
         plates.extend([(uid, p) for p in c['plates']])
         uid += 1
 
-    # print(json.dumps(annotations, indent=2))
-
-    # for p in plates:
-        # print(p)
-
-    # print(plates)
-
-    # print("Number of cars: {}".format(len(annotations['cars'])))
-    # print("Number of plates: {}".format(N))
-
     # List of cleaned up cars
     cars = list()
+
+    ignore_car_ids = list()
 
     for c in annotations['cars']:
 
         # Make a copy of the annotation for a single car
         c_copy = dict(c)
-        if len(c_copy['plates']) <= 1:
-            cars.append(c_copy)
-        else:
-            remove_duplicate_license(c_copy, plates)
-            cars.append(c_copy)
+
+
+        # if len(c_copy['plates']) <= 1:
+            # cars.append(c_copy)
+        # else:
+            # remove_duplicate_license(c_copy, plates)
+            # cars.append(c_copy)
+
+        remove_duplicate_license(c_copy, plates, ignore_car_ids)
+
+        cars.append(c_copy)
 
     annotations_unique = dict()
     annotations_unique['cars'] = cars
