@@ -67,7 +67,9 @@ done
 
 if [ -z "$input_dir"  ]; then echo "Input dir not set."; usage; exit 1; fi
 if [ -z "$output_dir" ]; then echo "Ouput dir not set."; usage; exit 1; fi
-if [ -z "$csv_file"   ]; then echo "CSV file not set." ; usage; exit 1; fi
+
+# XXX csv_file parameter no longer required (for now)
+#if [ -z "$csv_file"   ]; then echo "CSV file not set." ; usage; exit 1; fi
 
 # Check if input dir exists
 check_dir $input_dir
@@ -105,7 +107,9 @@ python license-plate-ocr.py $output_dir
 # Draw output and generate list
 echo "DRAWING OUTPUTS"
 #python gen-outputs.py $input_dir $output_dir > $csv_file
-python gen-outputs-simple.py $input_dir $output_dir
+#python gen-outputs-simple.py $input_dir $output_dir
+python generate-raw-annotations.py $input_dir $output_dir \
+    --width 3840 --height 2160
 
 #exit 0
 
