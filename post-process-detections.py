@@ -141,7 +141,16 @@ def main():
         print("License plates AFTER pruning: {}".format(N_after))
 
         # Process annotations
-        process_annotations(annotations_unique)
+        # TODO disable for now
+        # process_annotations(annotations_unique)
+
+        annotations_unique_file = os.path.join(
+            args.aux_folder,
+            "frame{:05d}_annotations_unique.json".format(t))
+
+        # Load annotations from json file
+        with open(annotations_unique_file, 'w') as jf:
+            annotations = json.dump(annotations_unique, jf, indent=4)
 
 
 if __name__ == "__main__":
