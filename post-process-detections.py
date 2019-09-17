@@ -47,6 +47,21 @@ def process_annotations(annotations):
     pass
 
 
+def area(a, b):  # returns None if rectangles don't intersect
+
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+
+    # dx = min(a.xmax, b.xmax) - max(a.xmin, b.xmin)
+    # dy = min(a.ymax, b.ymax) - max(a.ymin, b.ymin)
+
+    dx = min(ax + aw, bx + bw) - max(ax, bx)
+    dy = min(ay + ah, by + bh) - max(ay, by)
+
+    if dx >= 0 and dy >= 0:
+        return dx * dy
+
+
 def duplicate_license_exists(p, uid, plates):
     """
     Check if there is another license plate from a different vehicle with the
@@ -54,7 +69,9 @@ def duplicate_license_exists(p, uid, plates):
     """
 
     for v_id, op in plates:
-        if op['plate_text'] == p['plate_text'] and uid != v_id:
+        # if op['plate_text'] == p['plate_text'] and uid != v_id:
+        if area(p['bounding_box'], op['bounding_box']) is not None \
+                and uid != v_id:
             return True
 
     return False
