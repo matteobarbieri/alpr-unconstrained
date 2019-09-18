@@ -29,5 +29,3 @@ VEHICLE_COLORS = {
     'bus': COLOR_GREEN,
     'truck': COLOR_ORANGE,
 }
-
-

@@ -105,13 +105,17 @@ echo "LICENSE PLATE OCR"
 python license-plate-ocr.py $output_dir
 
 # Draw output and generate list
-echo "DRAWING OUTPUTS"
+
 #python gen-outputs.py $input_dir $output_dir > $csv_file
 #python gen-outputs-simple.py $input_dir $output_dir
 python generate-raw-annotations.py $input_dir $output_dir \
     --width 3840 --height 2160
 
-#exit 0
+# Remove duplicates
+python post-process-detections.py $input_dir $output_dir
+
+echo "DRAWING OUTPUTS"
+python annotate-images-from-json.py $input_dir $output_dir
 
 # Clean files and draw output
 if [ "$debug_mode" = false ] ; then
@@ -119,5 +123,6 @@ if [ "$debug_mode" = false ] ; then
     rm $output_dir/*car_*.png
     rm $output_dir/*_cars.txt
     rm $output_dir/*_lp.txt
+    rm $output_dir/*.json
     rm $output_dir/*_str.txt
 fi

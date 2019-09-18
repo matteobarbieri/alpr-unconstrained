@@ -4,6 +4,7 @@ import argparse
 
 import json
 
+from utils import guess_last_frame
 
 def parse_args():
 
@@ -27,7 +28,7 @@ def parse_args():
     parser.add_argument(
         '--end_frame',
         type=int,
-        required=True,
+        # required=True,
         help="The ending frame.")
 
     parser.add_argument(
@@ -40,7 +41,11 @@ def parse_args():
         type=int,
         help="The height of the original image")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.end_frame is None:
+        args.end_frame = guess_last_frame(args.input_folder)
+
+    return args
 
 
 def process_annotations(annotations):

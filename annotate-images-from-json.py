@@ -16,6 +16,8 @@ import time
 # TODO move somewhere else
 import re
 
+from utils import guess_last_frame
+
 # Import parameters such as symbols and colors from separate file
 from constants import (
     LINE_WIDTH, VEHICLE_SYMBOLS, VEHICLE_COLORS, TEXT_FG_COLOR, SCALE)
@@ -45,10 +47,14 @@ def parse_args():
     parser.add_argument(
         '--end_frame',
         type=int,
-        required=True,
+        # required=True,
         help="The ending frame.")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.end_frame is None:
+        args.end_frame = guess_last_frame(args.input_folder)
+
+    return args
 
 
 def outline_bounding_box(x, y, w, h, pil_draw, color):
