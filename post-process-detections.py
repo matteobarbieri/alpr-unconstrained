@@ -48,8 +48,155 @@ def parse_args():
     return args
 
 
-def process_annotations(annotations):
+def recover_missing_plates(annotations_history, i, plates, window,
+                           min_occurrences):
+    """
+    Use the previous and following N frames to recover plates in current frame
+    """
+
+    # print("Found {} plates".format(len(plates)))
+    plates_past = dict()
+    plates_future = dict()
+
+    # plate codes at current frame
+    current_plate_codes = [x['plate_text'] for x in plates]
+
+    # past
+    for i in range(i-window, i):
+        for car in annotations_history[i]['cars']:
+            for plate in car['plates']:
+
+                if not plate['valid_plate']:
+                    continue
+
+                pt = plate['plate_text']
+
+                if pt in plates_past:
+                    plates_past[pt]['seen_at'].append(i)
+                    plates_past[pt]['bb'][i] = plate['bounding_box']
+                else:
+                    plates_past[pt] = dict()
+                    plates_past[pt]['seen_at'] = [i]
+                    plates_past[pt]['bb'] = {}  # bounding boxes
+                    plates_past[pt]['bb'][i] = plate['bounding_box']
+
+    # future
+    for i in range(i+1, i+1+window):
+        for car in annotations_history[i]['cars']:
+            for plate in car['plates']:
+
+                if not plate['valid_plate']:
+                    continue
+
+                pt = plate['plate_text']
+
+                if pt in plates_future:
+                    plates_future[pt]['seen_at'].append(i)
+                    plates_future[pt]['bb'][i] = plate['bounding_box']
+                else:
+                    plates_future[pt] = dict()
+                    plates_future[pt]['seen_at'] = [i]
+                    plates_future[pt]['bb'] = {}  # bounding boxes
+                    plates_future[pt]['bb'][i] = plate['bounding_box']
+
+    # Find plates with a valid code that appear before AND after the frame
+    common_plate_codes = set(plates_future).intersection(set(plates_past))
+
+    # print(sorted(common_plate_codes))
+    # print(sorted(current_plate_codes))
+
+    plates_recovered = 0
+
+    for plate_code in common_plate_codes:
+        # In order to be added it must not be already present in current
+        # license plates and have appeared a minimum number of times in
+        # previous and future frames.
+        if (
+                plate_code not in current_plate_codes and
+                len(plates_past[plate_code]['bb']) >= min_occurrences and
+                len(plates_future[plate_code]['bb']) >= min_occurrences):
+
+            # Retrieve the last frame in which the plate was seen in previous
+            # frames and the first in which it was seen in future ones.
+            i_past = max(plates_past[plate_code]['seen_at'])
+            i_future = min(plates_future[plate_code]['seen_at'])
+
+            # Retrieve the bounding boxes for those instants
+            bb_past = plates_past[plate_code]['bb'][i_past]
+            bb_future = plates_future[plate_code]['bb'][i_future]
+
+            # compute temporal displacement
+            dt = i_future - i_past
+            dx = (bb_future[0] + bb_future[2]/2 - bb_past[0] - bb_past[2]/2)
+            dy = (bb_future[1] + bb_future[3]/3 - bb_past[1] - bb_past[3]/3)
+
+            # Approximate bounding box at current frame
+            bb_current = list(bb_past)  # Start from last seen bounding box
+            bb_current[0] += (i_past - i)*(dx/dt)
+            bb_current[1] += (i_past - i)*(dy/dt)
+
+            # Create the entry for the reconstructed plate
+            new_plate = {
+                'bounding_box': bb_current,
+                'valid_plate': True,
+                'plate_text': plate_code,
+            }
+
+            plates.append(new_plate)
+
+            plates_recovered += 1
+
+    print("Recovered {} plates".format(plates_recovered))
+
+
+def associate_plates_to_car(cars, plates):
+
     pass
+
+
+def process_annotations(annotations_history, i, window=25):
+    """
+    Process annotation for a given frame trying to correct wrong/missing data
+
+    Parameters
+    ----------
+
+    annotations : dict
+        Dictionary containing detections already pruned from duplicates
+    """
+
+    annotations_history
+
+    cars = list()
+    plates = list()
+
+    for car in annotations_history[i]['cars']:
+
+        # print(car)
+        car_cp = dict(car)
+        # del car_cp['plates']
+
+        # Empty list of plates
+        car_cp['plates'] = list()
+        cars.append(car_cp)
+
+        # Update the list of plates
+        plates.extend(car['plates'])
+
+        # for plate in car['plates']:
+            # print(plate)
+
+    plates = recover_missing_plates(
+        annotations_history, i, plates, window, 3)
+
+    associate_plates_to_car(cars, plates)
+
+    # print(cars)
+    # print(len(cars))
+
+    # 1/0
+
+    return
 
 
 def area(a, b):  # returns None if rectangles don't intersect
@@ -145,6 +292,11 @@ def main():
 
     args = parse_args()
 
+    # Keep track of previous frames
+    annotations_history = list()
+
+    # First create a list of detections in all frames, in order to be able in a
+    # second passage to fill in missing detections/correct them.
     for t in range(args.start_frame, args.end_frame+1):
 
         annotations_file = os.path.join(
@@ -162,20 +314,38 @@ def main():
 
         N_after = sum([len(c['plates']) for c in annotations_unique['cars']])
 
-        print("License plates BEFORE pruning: {}".format(N_before))
-        print("License plates AFTER pruning: {}".format(N_after))
+        # print("License plates BEFORE pruning: {}".format(N_before))
+        # print("License plates AFTER pruning: {}".format(N_after))
 
-        # Process annotations
-        # TODO disable for now
-        # process_annotations(annotations_unique)
+        # Save annotations for a given frame
+        annotations_history.append(annotations_unique)
 
-        annotations_unique_file = os.path.join(
-            args.aux_folder,
-            "frame{:05d}_annotations_unique.json".format(t))
 
-        # Load annotations from json file
-        with open(annotations_unique_file, 'w') as jf:
-            annotations = json.dump(annotations_unique, jf, indent=4)
+    # Then, try to fill in gaps using information from surrounding frames
+    i = 0
+
+    # Number of frames before and after to use to correct information
+    window = 25
+
+    for t in range(args.start_frame, args.end_frame+1):
+
+        # Skip the first and last N frames (N = window)
+        if i >= window and i < (args.end_frame - window):
+
+            # Process annotations
+            process_annotations(annotations_history, i, window)
+
+            continue
+
+            annotations_unique_file = os.path.join(
+                args.aux_folder,
+                "frame{:05d}_annotations_unique.json".format(t))
+
+            # Load annotations from json file
+            with open(annotations_unique_file, 'w') as jf:
+                annotations = json.dump(annotations_unique, jf, indent=4)
+
+        i += 1
 
 
 if __name__ == "__main__":
