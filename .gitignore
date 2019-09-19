@@ -112,6 +112,9 @@ venv.bak/
 
 *.swp
 
+# youcompleteme configuration file
+.ycm_extra_conf.py
+
 data/*
 *.a
 *.csv
