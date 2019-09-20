@@ -88,34 +88,50 @@ then
 	mkdir -p $output_dir
 fi
 
+STAGE=5
+
 # End if any error occur
 set -e
 
 # Detect vehicles
-echo "VEHICLE DETECTION"
-python vehicle-detection.py $input_dir $output_dir
+if [ $STAGE -le 1 ]; then
+    echo "VEHICLE DETECTION"
+    python vehicle-detection.py $input_dir $output_dir
+fi
 
 # Detect license plates
-echo "LICENSE PLATE DETECTION"
-# TODO fix the useless double argument?
-python simple-license-plate-detection.py $output_dir $output_dir
+if [ $STAGE -le 2 ]; then
+    echo "LICENSE PLATE DETECTION"
+    # TODO fix the useless double argument?
+    python simple-license-plate-detection.py $output_dir $output_dir
+fi
 
 # OCR
-echo "LICENSE PLATE OCR"
-python license-plate-ocr.py $output_dir
+if [ $STAGE -le 3 ]; then
+    echo "LICENSE PLATE OCR"
+    python license-plate-ocr.py $output_dir
+fi
 
 # Draw output and generate list
 
 #python gen-outputs.py $input_dir $output_dir > $csv_file
 #python gen-outputs-simple.py $input_dir $output_dir
-python generate-raw-annotations.py $input_dir $output_dir \
-    --width 3840 --height 2160
+if [ $STAGE -le 4 ]; then
+    echo "GENERATING RAW ANNOTATIONS"
+    python generate-raw-annotations.py $input_dir $output_dir \
+        --width 3840 --height 2160
+fi
 
 # Remove duplicates
-python post-process-detections.py $input_dir $output_dir
+if [ $STAGE -le 5 ]; then
+    echo "PERFORMING POST PROCESSING ON ANNOTATIONS"
+    python post-process-detections.py $input_dir $output_dir
+fi
 
 echo "DRAWING OUTPUTS"
-python annotate-images-from-json.py $input_dir $output_dir
+if [ $STAGE -le 6 ]; then
+    python annotate-images-from-json.py $input_dir $output_dir
+fi
 
 # Clean files and draw output
 if [ "$debug_mode" = false ] ; then
@@ -125,4 +141,7 @@ if [ "$debug_mode" = false ] ; then
     rm $output_dir/*_lp.txt
     rm $output_dir/*.json
     rm $output_dir/*_str.txt
+else
+    mkdir $output_dir/results
+    mv "${output_dir}/"*output.png $output_dir/results
 fi

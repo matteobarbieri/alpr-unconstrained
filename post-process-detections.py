@@ -4,6 +4,8 @@ import argparse
 
 import json
 
+import numpy as np
+
 from utils import guess_last_frame
 
 def parse_args():
@@ -32,14 +34,10 @@ def parse_args():
         help="The ending frame.")
 
     parser.add_argument(
-        '--width',
+        '--window',
         type=int,
-        help="The width of the original image")
-
-    parser.add_argument(
-        '--height',
-        type=int,
-        help="The height of the original image")
+        default=5,
+        help="The number of frame to use to improve plates detection")
 
     args = parser.parse_args()
     if args.end_frame is None:
@@ -127,8 +125,12 @@ def recover_missing_plates(annotations_history, i, plates, window,
 
             # compute temporal displacement
             dt = i_future - i_past
-            dx = (bb_future[0] + bb_future[2]/2 - bb_past[0] - bb_past[2]/2)
-            dy = (bb_future[1] + bb_future[3]/3 - bb_past[1] - bb_past[3]/3)
+
+            xc_past, yc_past = compute_center_coordinates(bb_past)
+            xc_future, yc_future = compute_center_coordinates(bb_future)
+
+            dx = (xc_future - xc_past)
+            dy = (yc_future - yc_past)
 
             # Approximate bounding box at current frame
             bb_current = list(bb_past)  # Start from last seen bounding box
@@ -148,10 +150,99 @@ def recover_missing_plates(annotations_history, i, plates, window,
 
     print("Recovered {} plates".format(plates_recovered))
 
+    return plates
+
+
+def compute_center_coordinates(bb):
+    """
+    Computes the coordinates of the center of a rectangular region
+
+    bb = [x, y, w, h]
+    """
+
+    cx = bb[0] + bb[2]/2
+    cy = bb[1] + bb[3]/2
+
+    return cx, cy
 
 def associate_plates_to_car(cars, plates):
+    """
+    Associate each plate to the closest available vehicle
+    """
 
-    pass
+    # Keep track of indexes of cars that have already been assigned
+    unavailable_cars_indexes = list()
+
+    for p in plates:
+        min_dist = np.inf
+
+        px, py = compute_center_coordinates(p['bounding_box'])
+
+        for ic, car in enumerate(cars):
+
+            # Skip vehicles that have already been assigned a plate
+            if ic in unavailable_cars_indexes:
+                continue
+
+            # Compute coordinates of the center of the vehicle's bb
+            cx, cy = compute_center_coordinates(car['bounding_box'])
+
+            dist = (cx - px)**2 + (cy - py)**2
+            if dist < min_dist:
+                min_dist = dist
+                min_dist_car_index = ic
+
+        # Assigne plate to the closest available car
+        cars[min_dist_car_index]['plates'] = [p]
+
+        # Mark car as unavailable
+        unavailable_cars_indexes.append(min_dist_car_index)
+
+    return cars
+
+
+def remove_duplicate_plates(plates, annotations_history):
+
+    excluded_plates_indexes = list()
+    unique_plates_list = list()
+
+    for i in range(len(plates)):
+
+        # If it has been already excluded, skip
+        if i in excluded_plates_indexes:
+            continue
+
+        p1 = plates[i]
+
+        for j in range(i+1, len(plates)):
+
+            p2 = plates[j]
+
+            # Handle collision
+            if area(p1['bounding_box'], p2['bounding_box']) is not None:
+
+                # If they're the same skip the other one
+                if p1['plate_text'] == p2['plate_text']:
+                    excluded_plates_indexes.append(j)
+
+                if p1['valid_plate'] and not p2['valid_plate']:
+                    # If the first one is valid and the second one isn't,
+                    # remove the second one.
+                    excluded_plates_indexes.append(j)
+                elif not p1['valid_plate'] and p2['valid_plate']:
+                    # If the first one is NOT valid and the second one is
+                    # valid, break the inner loop, thus preventing the first
+                    # one to be added (it's the else part of the loop).
+                    break
+                else:
+                    # Choose the one that appeared more frequently in the past
+                    # TODO
+                    excluded_plates_indexes.append(j)
+        else:
+
+            unique_plates_list.append(p1)
+
+    return unique_plates_list
 
 
 def process_annotations(annotations_history, i, window=25):
@@ -189,14 +280,20 @@ def process_annotations(annotations_history, i, window=25):
     plates = recover_missing_plates(
         annotations_history, i, plates, window, 3)
 
-    associate_plates_to_car(cars, plates)
+    # print("Plates before pruning:")
+    # print(plates)
 
-    # print(cars)
-    # print(len(cars))
+    # Remove duplicate plates (i.e., those overlapping) by keeping those more
+    # likely to be correct
+    plates_unique = remove_duplicate_plates(plates, annotations_history)
 
-    # 1/0
+    # print("Plates after pruning:")
+    # print(plates_unique)
 
-    return
+    # Finally asociate plate to car
+    cars = associate_plates_to_car(cars, plates_unique)
+
+    return {'cars' : cars}
 
 
 def area(a, b):  # returns None if rectangles don't intersect
@@ -309,8 +406,11 @@ def main():
 
         N_before = sum([len(c['plates']) for c in annotations['cars']])
 
+        # TODO
+        # No longer remove duplicate plates, this is done in a following step
         # Remove duplicate coming from overlapping vehicles/large BB
-        annotations_unique = remove_duplicates(annotations)
+        # annotations_unique = remove_duplicates(annotations)
+        annotations_unique = annotations
 
         N_after = sum([len(c['plates']) for c in annotations_unique['cars']])
 
@@ -325,17 +425,18 @@ def main():
     i = 0
 
     # Number of frames before and after to use to correct information
-    window = 25
+    # window = 25
+    args.window = 5
 
     for t in range(args.start_frame, args.end_frame+1):
 
-        # Skip the first and last N frames (N = window)
-        if i >= window and i < (args.end_frame - window):
+        # Skip the first and last N frames (N = args.window)
+        if i >= args.window and i < (args.end_frame - args.window):
+            print("Processing frame {}".format(t))
 
             # Process annotations
-            process_annotations(annotations_history, i, window)
-
-            continue
+            annotations_unique = process_annotations(
+                annotations_history, i, args.window)
 
             annotations_unique_file = os.path.join(
                 args.aux_folder,
@@ -344,6 +445,8 @@ def main():
             # Load annotations from json file
             with open(annotations_unique_file, 'w') as jf:
                 annotations = json.dump(annotations_unique, jf, indent=4)
+        else:
+            print("Skipping frame {} (out of time window)".format(t))
 
         i += 1
 

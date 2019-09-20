@@ -50,9 +50,19 @@ def parse_args():
         # required=True,
         help="The ending frame.")
 
+    parser.add_argument(
+        '--window',
+        type=int,
+        default=5,
+        help="The number of frame to use to improve plates detection")
+
     args = parser.parse_args()
     if args.end_frame is None:
         args.end_frame = guess_last_frame(args.input_folder)
+
+    # Correct start and end frame based on the window parameter
+    args.start_frame += args.window
+    args.end_frame -= args.window
 
     return args
 
