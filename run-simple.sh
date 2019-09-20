@@ -89,6 +89,7 @@ then
 fi
 
 STAGE=5
+PRODUCE_OUTPUT=false
 
 # End if any error occur
 set -e
@@ -128,8 +129,9 @@ if [ $STAGE -le 5 ]; then
     python post-process-detections.py $input_dir $output_dir
 fi
 
-echo "DRAWING OUTPUTS"
-if [ $STAGE -le 6 ]; then
+#if [ $STAGE -le 6 ]; then
+if [ "$PRODUCE_OUTPUT" = true ] ; then
+    echo "DRAWING OUTPUTS"
     python annotate-images-from-json.py $input_dir $output_dir
 fi
 

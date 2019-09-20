@@ -8,6 +8,7 @@ import numpy as np
 
 from utils import guess_last_frame
 
+
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -46,7 +47,7 @@ def parse_args():
     return args
 
 
-def recover_missing_plates(annotations_history, i, plates, window,
+def recover_missing_plates(annotations_history, i, plates, window,  # noqa
                            min_occurrences):
     """
     Use the previous and following N frames to recover plates in current frame
@@ -165,6 +166,7 @@ def compute_center_coordinates(bb):
 
     return cx, cy
 
+
 def associate_plates_to_car(cars, plates):
     """
     Associate each plate to the closest available vehicle
@@ -274,9 +276,6 @@ def process_annotations(annotations_history, i, window=25):
         # Update the list of plates
         plates.extend(car['plates'])
 
-        # for plate in car['plates']:
-            # print(plate)
-
     plates = recover_missing_plates(
         annotations_history, i, plates, window, 3)
 
@@ -293,7 +292,7 @@ def process_annotations(annotations_history, i, window=25):
     # Finally asociate plate to car
     cars = associate_plates_to_car(cars, plates_unique)
 
-    return {'cars' : cars}
+    return {'cars': cars}
 
 
 def area(a, b):  # returns None if rectangles don't intersect
@@ -309,80 +308,6 @@ def area(a, b):  # returns None if rectangles don't intersect
 
     if dx >= 0 and dy >= 0:
         return dx * dy
-
-
-def duplicate_license_exists(p, uid, plates, ignore_car_ids):
-    """
-    Check if there is another license plate from a different vehicle with the
-    same extracted text.
-    """
-
-    for v_id, op in plates:
-
-        # Skip already removed cars
-        if v_id in ignore_car_ids:
-            continue
-
-        # if op['plate_text'] == p['plate_text'] and uid != v_id:
-        if area(p['bounding_box'], op['bounding_box']) is not None \
-                and uid != v_id:
-            return True
-
-    return False
-
-
-def remove_duplicate_license(car, plates, ignore_car_ids):
-    new_plates_list = list()
-
-    for p in car['plates']:
-
-        if not duplicate_license_exists(p, car['uid'], plates, ignore_car_ids):
-        # if (car['uid'], p['plate_text']) not in [  # noqa
-                # (uid, op['plate_text']) for (uid, op) in plates]:
-
-            new_plates_list.append(p)
-        else:
-            ignore_car_ids.append(car['uid'])
-
-    car['plates'] = new_plates_list
-
-
-def remove_duplicates(annotations):
-
-    plates = list()
-
-    uid = 1
-
-    for c in annotations['cars']:
-        c['uid'] = uid
-        plates.extend([(uid, p) for p in c['plates']])
-        uid += 1
-
-    # List of cleaned up cars
-    cars = list()
-
-    ignore_car_ids = list()
-
-    for c in annotations['cars']:
-
-        # Make a copy of the annotation for a single car
-        c_copy = dict(c)
-
-
-        # if len(c_copy['plates']) <= 1:
-            # cars.append(c_copy)
-        # else:
-            # remove_duplicate_license(c_copy, plates)
-            # cars.append(c_copy)
-
-        remove_duplicate_license(c_copy, plates, ignore_car_ids)
-
-        cars.append(c_copy)
-
-    annotations_unique = dict()
-    annotations_unique['cars'] = cars
-
-    return annotations_unique
 
 
 def main():
@@ -404,7 +329,7 @@ def main():
         with open(annotations_file, 'r') as jf:
             annotations = json.load(jf)
 
-        N_before = sum([len(c['plates']) for c in annotations['cars']])
+        # N_before = sum([len(c['plates']) for c in annotations['cars']])
 
         # TODO
         # No longer remove duplicate plates, this is done in a following step
@@ -412,14 +337,13 @@ def main():
         # annotations_unique = remove_duplicates(annotations)
         annotations_unique = annotations
 
-        N_after = sum([len(c['plates']) for c in annotations_unique['cars']])
+        # N_after = sum([len(c['plates']) for c in annotations_unique['cars']])
 
         # print("License plates BEFORE pruning: {}".format(N_before))
         # print("License plates AFTER pruning: {}".format(N_after))
 
         # Save annotations for a given frame
         annotations_history.append(annotations_unique)
-
 
     # Then, try to fill in gaps using information from surrounding frames
     i = 0
