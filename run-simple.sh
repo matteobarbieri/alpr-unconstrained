@@ -57,13 +57,15 @@ usage() {
 while getopts 'i:o:c:l:hd' OPTION; do
 	case $OPTION in
 		i) input_dir=$OPTARG;;
-		o) output_dir=$OPTARG;;
+		#o) output_dir=$OPTARG;;
 		c) csv_file=$OPTARG;;
 		d) debug_mode=true;;
 		l) lp_model=$OPTARG;;
 		h) usage;;
 	esac
 done
+
+output_dir="${input_dir}_out"
 
 if [ -z "$input_dir"  ]; then echo "Input dir not set."; usage; exit 1; fi
 if [ -z "$output_dir" ]; then echo "Ouput dir not set."; usage; exit 1; fi
@@ -88,8 +90,17 @@ then
 	mkdir -p $output_dir
 fi
 
-STAGE=5
-PRODUCE_OUTPUT=false
+check_dir $output_dir/results
+retval=$?
+if [ $retval -eq 0 ]; then
+    mkdir $output_dir/results
+fi
+
+#STAGE=4  # generate raw annotations
+STAGE=5  # post processing
+
+#PRODUCE_OUTPUT=false
+PRODUCE_OUTPUT=true
 
 # End if any error occur
 set -e
@@ -126,13 +137,13 @@ fi
 # Remove duplicates
 if [ $STAGE -le 5 ]; then
     echo "PERFORMING POST PROCESSING ON ANNOTATIONS"
-    python post-process-detections.py $input_dir $output_dir
+    python post-process-detections.py $input_dir $output_dir --window 25
 fi
 
 #if [ $STAGE -le 6 ]; then
 if [ "$PRODUCE_OUTPUT" = true ] ; then
     echo "DRAWING OUTPUTS"
-    python annotate-images-from-json.py $input_dir $output_dir
+    python annotate-images-from-json.py $input_dir $output_dir --window 25
 fi
 
 # Clean files and draw output
@@ -143,7 +154,6 @@ if [ "$debug_mode" = false ] ; then
     rm $output_dir/*_lp.txt
     rm $output_dir/*.json
     rm $output_dir/*_str.txt
-else
-    mkdir $output_dir/results
-    mv "${output_dir}/"*output.png $output_dir/results
 fi
+
+#mv "${output_dir}/"*output.png $output_dir/results

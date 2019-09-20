@@ -178,23 +178,29 @@ def process_image(img_path, args):
 
     tic = time.time()
 
-    # First get the list of cars
-    cars_df = pd.read_csv(
-        os.path.join(
-            args.aux_folder, "{}_cars.txt".format(base_image_name[:-4])),
-        header=None, sep=' ',
-        names=['cc', 'x', 'y', 'w', 'h', 'category'])
-
+    # Prepare output dictionary
     annotations = dict()
     annotations['cars'] = list()
 
-    # for car_id, car_row in enumerate(cars_df.iterrows()):
-    for car_id, car_row in cars_df.iterrows():
+    try:
 
-        car_annotations = get_annotations_from_car_crop(
-            car_id, car_row, base_image_name, w, h, args)
+        # First get the list of cars
+        cars_df = pd.read_csv(
+            os.path.join(
+                args.aux_folder, "{}_cars.txt".format(base_image_name[:-4])),
+            header=None, sep=' ',
+            names=['cc', 'x', 'y', 'w', 'h', 'category'])
 
-        annotations['cars'].append(car_annotations)
+        # for car_id, car_row in enumerate(cars_df.iterrows()):
+        for car_id, car_row in cars_df.iterrows():
+
+            car_annotations = get_annotations_from_car_crop(
+                car_id, car_row, base_image_name, w, h, args)
+
+            annotations['cars'].append(car_annotations)
+
+    except Exception as e:  # noqa
+        pass
 
     with open(
             os.path.join(
@@ -207,7 +213,6 @@ def process_image(img_path, args):
     toc = time.time()
 
     print("Done, elapsed time = {}".format(toc-tic))
-    print("Done, writing image")
 
     return
 

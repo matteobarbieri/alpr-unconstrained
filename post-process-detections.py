@@ -350,7 +350,7 @@ def main():
 
     # Number of frames before and after to use to correct information
     # window = 25
-    args.window = 5
+    # args.window = 5
 
     for t in range(args.start_frame, args.end_frame+1):
 

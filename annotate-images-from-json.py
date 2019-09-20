@@ -145,7 +145,10 @@ def annotate_image(img_path, annotations, font, font_large, args):
 
     # Save the image with bb
     img_full.save(
-        os.path.join(args.aux_folder, base_image_name[:-4]+"_output.png"),
+        os.path.join(
+            args.aux_folder,
+            'results',
+            base_image_name[:-4]+"_output.png"),
         "PNG")
 
     return
