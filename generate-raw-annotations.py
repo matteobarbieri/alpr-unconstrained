@@ -225,6 +225,7 @@ def main():
     imgs_paths = image_files_from_folder(args.input_folder)
 
     for img_path in imgs_paths:
+        # Process each image individually
         process_image(img_path, args)
 
 

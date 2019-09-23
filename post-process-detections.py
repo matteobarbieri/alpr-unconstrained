@@ -47,6 +47,76 @@ def parse_args():
     return args
 
 
+def iterative_levenshtein(s, t):
+    """
+        iterative_levenshtein(s, t) -> ldist
+        ldist is the Levenshtein distance between the strings
+        s and t.
+        For all i and j, dist[i,j] will contain the Levenshtein
+        distance between the first i characters of s and the
+        first j characters of t
+    """
+    rows = len(s)+1
+    cols = len(t)+1
+    dist = [[0 for x in range(cols)] for x in range(rows)]
+    # source prefixes can be transformed into empty strings
+    # by deletions:
+    for i in range(1, rows):
+        dist[i][0] = i
+    # target prefixes can be created from an empty source string
+    # by inserting the characters
+    for i in range(1, cols):
+        dist[0][i] = i
+
+    for col in range(1, cols):
+        for row in range(1, rows):
+            if s[row-1] == t[col-1]:
+                cost = 0
+            else:
+                cost = 1
+            dist[row][col] = min(dist[row-1][col] + 1,      # deletion
+                                 dist[row][col-1] + 1,      # insertion
+                                 dist[row-1][col-1] + cost) # substitution
+    # for r in range(rows):
+        # print(dist[r])
+
+
+    return dist[row][col]
+
+
+def most_similar_plate(target_plate, plate_list, max_distance=2):
+    """
+    Given a target license plate and a list of candidate plates, find the one
+    from the list which is at a distance of at most D from the target plate.
+
+    Returns the index of the most similar plate
+
+    Parameters
+    ----------
+
+    target_plate : str
+
+    plate_list : list
+        Each item is a dictionary
+    """
+
+    min_distance = np.inf
+    mspi = None
+
+    # TODO catch errors properly
+    try:
+        for i, p in enumerate(plate_list):
+            ld = iterative_levenshtein(target_plate, p['plate_text'])
+
+            if ld <= max_distance and ld < min_distance:
+                min_distance = ld
+                mspi = i
+    except:
+        pass
+
+    return mspi
+
+
 def recover_missing_plates(annotations_history, i, plates, window,  # noqa
                            min_occurrences):
     """
@@ -58,7 +128,7 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     plates_future = dict()
 
     # plate codes at current frame
-    current_plate_codes = [x['plate_text'] for x in plates]
+    # current_plate_codes = [x['plate_text'] for x in plates]
 
     # past
     for i in range(i-window, i):
@@ -101,17 +171,29 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     # Find plates with a valid code that appear before AND after the frame
     common_plate_codes = set(plates_future).intersection(set(plates_past))
 
-    # print(sorted(common_plate_codes))
-    # print(sorted(current_plate_codes))
-
     plates_recovered = 0
+    plates_fixed = 0
 
     for plate_code in common_plate_codes:
         # In order to be added it must not be already present in current
         # license plates and have appeared a minimum number of times in
         # previous and future frames.
+
+        mspi = most_similar_plate(plate_code, plates)
+        # print(mspi)
+
+        # If in the past there is a better version of the plate, replace the
+        # code of the one in the current frame (XXX experimental)
+        if mspi is not None:
+            plates[mspi]['plate_text'] = plate_code
+            plates_fixed += 1
+            continue
+
+        # if (
+                # plate_code not in current_plate_codes and
+                # len(plates_past[plate_code]['bb']) >= min_occurrences and
+                # len(plates_future[plate_code]['bb']) >= min_occurrences):
         if (
-                plate_code not in current_plate_codes and
                 len(plates_past[plate_code]['bb']) >= min_occurrences and
                 len(plates_future[plate_code]['bb']) >= min_occurrences):
 
@@ -150,6 +232,7 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
             plates_recovered += 1
 
     print("Recovered {} plates".format(plates_recovered))
+    print("Fixed {} plates".format(plates_fixed))
 
     return plates
 
