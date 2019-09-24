@@ -75,6 +75,7 @@ def main():
     for t in range(args.start_frame, args.end_frame+1):
 
         # Skip the first and last N frames (N = args.window)
+        # TODO check this, there might be a bug!
         if i >= args.window and i < (args.end_frame - args.window):
             print("Processing frame {}".format(t))
 

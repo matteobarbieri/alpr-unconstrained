@@ -33,9 +33,19 @@ def process_annotations(annotations_history, i, window, keep_invalid=False):
     plates = recover_missing_plates(
         annotations_history, i, plates, window, 3)
 
+    # print("After recover_missing_plates:")
+    # print("# of plates: {}".format(len(plates)))
+    # for p in plates:
+        # print(p['plate_text'])
+
     if not keep_invalid:
         # Remove invalid plates
         plates = remove_invalid_plates(plates)
+
+    # print("After remove_invalid_plates:")
+    # print("# of plates: {}".format(len(plates)))
+    # for p in plates:
+        # print(p['plate_text'])
 
     # Remove duplicate plates (i.e., those overlapping) by keeping those more
     # likely to be correct
@@ -45,6 +55,37 @@ def process_annotations(annotations_history, i, window, keep_invalid=False):
     cars = associate_plate_to_vehicle(cars, plates_unique)
 
     return {'cars': cars}
+
+
+def choose_best_alternative(current_plate, new_plate_code,
+                            plates_past, plates_future):
+    """
+    current plate is a full plate dict, new_plate_code is just a string
+    """
+
+    # If current plate is not valid, return the other one
+    if not current_plate['valid_plate']:
+        return new_plate_code
+
+    old_plate_code = current_plate['plate_text']
+
+    # If both are valid, return the one that has appeared most frequently
+    n_old = 0
+    if old_plate_code in plates_past:
+        n_old += len(plates_past[old_plate_code]['bb'])
+    if old_plate_code in plates_future:
+        n_old += len(plates_future[old_plate_code]['bb'])
+
+    n_new = 0
+    if new_plate_code in plates_past:
+        n_new += len(plates_past[new_plate_code]['bb'])
+    if new_plate_code in plates_future:
+        n_new += len(plates_future[new_plate_code]['bb'])
+
+    if n_old > n_new:
+        return old_plate_code
+    else:
+        return new_plate_code
 
 
 def recover_missing_plates(annotations_history, i, plates, window,  # noqa
@@ -97,6 +138,14 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     # Find plates with a valid code that appear before AND after current frame
     common_plate_codes = set(plates_future).intersection(set(plates_past))
 
+    # TODO DEBUG
+    # print("Plates at current frame:")
+    # # print(plates)
+    # print([p['plate_text'] for p in plates])
+
+    # print("License plates found in surrounding frames.")
+    # print(common_plate_codes)
+
     plates_recovered = 0
     plates_fixed = 0
 
@@ -115,8 +164,23 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
         # This assumes that only valid plates are present in the lists of those
         # retrieved from future and past.
         if mspi is not None:
-            plates[mspi]['plate_text'] = plate_code
-            plates_fixed += 1
+
+            # TODO debug remove
+            # print("Replacing {} with {}".format(
+                # plates[mspi]['plate_text'], plate_code))
+
+            best_plate_alternative = choose_best_alternative(
+                plates[mspi], plate_code, plates_past, plates_future)
+
+            # plates[mspi]['plate_text'] = plate_code
+            plates[mspi]['plate_text'] = best_plate_alternative
+
+            if best_plate_alternative == plate_code:
+                plates_fixed += 1
+
+            # Plate is now valid, since it has been replaced with a code that
+            # we know is valid!
+            plates[mspi]['valid_plate'] = True
             continue
 
         # If no match with a plate from current frame is found, this means
@@ -163,7 +227,7 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
             plates_recovered += 1
 
     print("Recovered {} plates".format(plates_recovered))
-    print("Fixed {} plates".format(plates_fixed))
+    # print("Fixed {} plates".format(plates_fixed))
 
     return plates
 

@@ -67,6 +67,17 @@ def main():
     annotations_unique = process_annotations(
         annotations_history, i, args.window)
 
+    # sad
+    print(60*"=")
+    print("Final list of plates:")
+    for c in annotations_unique['cars']:
+        for p in c['plates']:
+            print(p)
+
+    # print(annotations_unique)
+
+    return
+
     annotations_unique_file = os.path.join(
         args.aux_folder,
         "frame{:05d}_annotations_unique.json".format(args.target_frame))
