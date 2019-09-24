@@ -96,8 +96,8 @@ if [ $retval -eq 0 ]; then
     mkdir $output_dir/results
 fi
 
-#STAGE=4  # generate raw annotations
-STAGE=5  # post processing
+STAGE=4  # generate raw annotations
+#STAGE=5  # post processing
 
 #PRODUCE_OUTPUT=false
 PRODUCE_OUTPUT=true

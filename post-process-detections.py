@@ -38,8 +38,8 @@ def parse_args():
     parser.add_argument(
         '--window',
         type=int,
-        default=5,
-        help="The number of frame to use to improve plates detection")
+        default=25,
+        help="Number of frames before and after to use to correct detections.")
 
     args = parser.parse_args()
     if args.end_frame is None:
@@ -87,12 +87,8 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     Use the previous and following N frames to recover plates in current frame
     """
 
-    # print("Found {} plates".format(len(plates)))
     plates_past = dict()
     plates_future = dict()
-
-    # plate codes at current frame
-    # current_plate_codes = [x['plate_text'] for x in plates]
 
     # past
     for i in range(i-window, i):
@@ -132,7 +128,7 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
                     plates_future[pt]['bb'] = {}  # bounding boxes
                     plates_future[pt]['bb'][i] = plate['bounding_box']
 
-    # Find plates with a valid code that appear before AND after the frame
+    # Find plates with a valid code that appear before AND after current frame
     common_plate_codes = set(plates_future).intersection(set(plates_past))
 
     plates_recovered = 0
@@ -143,20 +139,25 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
         # license plates and have appeared a minimum number of times in
         # previous and future frames.
 
+        # Find the index of the license plate in the list of the ones found in
+        # current frame that most resembles the one found in both future and
+        # past frames.
         mspi = most_similar_plate(plate_code, plates)
-        # print(mspi)
 
         # If in the past there is a better version of the plate, replace the
         # code of the one in the current frame (XXX experimental)
+        # This assumes that only valid plates are present in the lists of those
+        # retrieved from future and past.
         if mspi is not None:
             plates[mspi]['plate_text'] = plate_code
             plates_fixed += 1
             continue
 
-        # if ( # noqa
-                # plate_code not in current_plate_codes and # noqa
-                # len(plates_past[plate_code]['bb']) >= min_occurrences and # noqa
-                # len(plates_future[plate_code]['bb']) >= min_occurrences): # noqa
+        # If no match with a plate from current frame is found, this means
+        # (probably) that for some reason it is not visible in current frame.
+        # However, it may be possible to estimate its current position if it
+        # had appeared a given number of times in past/it will appear in future
+        # frames.
         if (
                 len(plates_past[plate_code]['bb']) >= min_occurrences and
                 len(plates_future[plate_code]['bb']) >= min_occurrences):
@@ -201,9 +202,12 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     return plates
 
 
-def associate_plates_to_car(cars, plates):
+def associate_plate_to_vehicle(cars, plates):
     """
-    Associate each plate to the closest available vehicle
+    Associate each plate to the closest available vehicle.
+
+    Also check that the bounding box of the license plate is inside the
+    bounding box of the car it is assigned to.
     """
 
     # Keep track of indexes of cars that have already been assigned
@@ -228,13 +232,28 @@ def associate_plates_to_car(cars, plates):
                 min_dist = dist
                 min_dist_car_index = ic
 
-        # Assigne plate to the closest available car
-        cars[min_dist_car_index]['plates'] = [p]
+        # If a suitable car has been found AND there is an overlap between the
+        # bounding boux of the license plate and the one of the closest car, do
+        # proceed to assign that license plate to that car.
+        if (min_dist != np.inf and
+            area(p['bounding_box'],
+                 cars[min_dist_car_index]['bounding_box']) is not None):
 
-        # Mark car as unavailable
-        unavailable_cars_indexes.append(min_dist_car_index)
+            # Assign plate to the closest available car
+            cars[min_dist_car_index]['plates'] = [p]
+
+            # Mark car as unavailable
+            unavailable_cars_indexes.append(min_dist_car_index)
 
     return cars
+
+
+def remove_invalid_plates(plates):
+    """
+    Simply return only pates whose code is valid.
+    """
+
+    return [p for p in plates if p['valid_plate']]
 
 
 def remove_duplicate_plates(plates, annotations_history):
@@ -281,7 +300,7 @@ def remove_duplicate_plates(plates, annotations_history):
     return unique_plates_list
 
 
-def process_annotations(annotations_history, i, window=25):
+def process_annotations(annotations_history, i, window, keep_invalid=False):
     """
     Process annotation for a given frame trying to correct wrong/missing data
 
@@ -292,8 +311,7 @@ def process_annotations(annotations_history, i, window=25):
         Dictionary containing detections already pruned from duplicates
     """
 
-    annotations_history
-
+    # Create a list of all cars and plates detected _in current frame_
     cars = list()
     plates = list()
 
@@ -301,7 +319,6 @@ def process_annotations(annotations_history, i, window=25):
 
         # print(car)
         car_cp = dict(car)
-        # del car_cp['plates']
 
         # Empty list of plates
         car_cp['plates'] = list()
@@ -313,18 +330,16 @@ def process_annotations(annotations_history, i, window=25):
     plates = recover_missing_plates(
         annotations_history, i, plates, window, 3)
 
-    # print("Plates before pruning:")
-    # print(plates)
+    if not keep_invalid:
+        # Remove invalid plates
+        plates = remove_invalid_plates(plates)
 
     # Remove duplicate plates (i.e., those overlapping) by keeping those more
     # likely to be correct
     plates_unique = remove_duplicate_plates(plates, annotations_history)
 
-    # print("Plates after pruning:")
-    # print(plates_unique)
-
-    # Finally asociate plate to car
-    cars = associate_plates_to_car(cars, plates_unique)
+    # Finally asociate plate to vehicle
+    cars = associate_plate_to_vehicle(cars, plates_unique)
 
     return {'cars': cars}
 
@@ -348,29 +363,13 @@ def main():
         with open(annotations_file, 'r') as jf:
             annotations = json.load(jf)
 
-        # N_before = sum([len(c['plates']) for c in annotations['cars']])
-
-        # TODO
-        # No longer remove duplicate plates, this is done in a following step
-        # Remove duplicate coming from overlapping vehicles/large BB
-        # annotations_unique = remove_duplicates(annotations)
-        annotations_unique = annotations
-
-        # N_after = sum([len(c['plates']) for c in annotations_unique['cars']])
-
-        # print("License plates BEFORE pruning: {}".format(N_before))
-        # print("License plates AFTER pruning: {}".format(N_after))
-
         # Save annotations for a given frame
-        annotations_history.append(annotations_unique)
+        annotations_history.append(annotations)
 
     # Then, try to fill in gaps using information from surrounding frames
     i = 0
 
     # Number of frames before and after to use to correct information
-    # window = 25
-    # args.window = 5
-
     for t in range(args.start_frame, args.end_frame+1):
 
         # Skip the first and last N frames (N = args.window)

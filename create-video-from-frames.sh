@@ -7,5 +7,5 @@ ffmpeg -r 25 \
     -start_number 26 \
     -i "${FRAMES_FOLDER}/frame%05d_output.png" -c:v \
     libx264 -vf fps=25 -pix_fmt yuv420p \
-    "${FRAMES_FOLDER}/output_unique.mp4"
+    "${FRAMES_FOLDER}/output_$(date +%Y%m%d_%H%M).mp4"
 

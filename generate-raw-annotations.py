@@ -20,7 +20,7 @@ import json
 # TODO move somewhere else
 import re
 
-LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")  # noqa
+LP_PATTERN = re.compile("[A-FZ][A-Z][\d]{3}[A-Z]{2}")  # noqa
 
 
 def parse_args():
