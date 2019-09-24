@@ -13,16 +13,11 @@ import json
 
 import time
 
-# TODO move somewhere else
-import re
-
 from utils import guess_last_frame
 
 # Import parameters such as symbols and colors from separate file
 from constants import (
     LINE_WIDTH, VEHICLE_SYMBOLS, VEHICLE_COLORS, TEXT_FG_COLOR, SCALE)
-
-LP_PATTERN = re.compile("[A-Z]{2}[\d]{3}[A-Z]{2}")  # noqa
 
 
 def parse_args():
