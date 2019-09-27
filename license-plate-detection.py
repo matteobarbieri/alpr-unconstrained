@@ -8,19 +8,35 @@ from src.utils import im2single
 from src.keras_utils import load_model, detect_lp
 from src.label import Shape, writeShapes
 
+import argparse
+
 
 def adjust_pts(pts, lroi):
     return pts*lroi.wh().reshape((2, 1)) + lroi.tl().reshape((2, 1))
+
+
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('input_dir')
+
+    parser.add_argument(
+        '--lp_threshold', type=float, default=0.5)
+
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
 
     try:
 
-        input_dir = sys.argv[1]
+        args = parse_args()
+
+        input_dir = args.input_dir
         output_dir = input_dir
 
-        lp_threshold = .5
+        lp_threshold = args.lp_threshold
 
         wpod_net_path = sys.argv[2]
         wpod_net = load_model(wpod_net_path)

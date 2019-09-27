@@ -9,15 +9,31 @@ from darknet.python.darknet import detect
 from src.label import dknet_label_conversion
 from src.utils import nms
 
+import argparse
+
+
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('input_dir')
+
+    parser.add_argument(
+        '--ocr_threshold', type=float, default=0.4)
+
+    return parser.parse_args()
+
 
 if __name__ == '__main__':
 
     try:
 
-        input_dir = sys.argv[1]
-        output_dir = input_dir
+        args = parse_args()
 
-        ocr_threshold = .4
+        input_dir = args.input_dir
+        ocr_threshold = args.ocr_threshold
+
+        output_dir = input_dir
 
         ocr_weights = b'data/ocr/ocr-net.weights'
         ocr_netcfg = b'data/ocr/ocr-net.cfg'

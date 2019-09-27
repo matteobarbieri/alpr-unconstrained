@@ -11,15 +11,31 @@ from os import makedirs
 from src.utils import crop_region, image_files_from_folder
 from darknet.python.darknet import detect
 
+import argparse
+
+
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('input_dir')
+
+    parser.add_argument(
+        '--lp_threshold', type=float, default=0.5)
+
+    return parser.parse_args()
+
 
 if __name__ == '__main__':
 
     try:
 
-        input_dir = sys.argv[1]
-        output_dir = sys.argv[2]
+        args = parse_args()
 
-        lp_threshold = .5
+        input_dir = args.input_dir
+        output_dir = input_dir
+
+        lp_threshold = args.lp_threshold
 
         lp_weights = b'data/simple-lp-detector/lapi.weights'
         lp_netcfg = b'data/simple-lp-detector/yolov3-lp.cfg'
@@ -49,7 +65,6 @@ if __name__ == '__main__':
                 thresh=lp_threshold)
 
             # Only get "LP" classes (although there should be only that class)
-            # R = [r for r in R if r[0] in [b'car', b'bus', b'truck']]
             R = [r for r in R if r[0] in [b'LP']]
 
             print('\t\t%d license plates found' % len(R))
