@@ -66,7 +66,8 @@ if __name__ == '__main__':
                 thresh=vehicle_threshold)
 
             R = [r for r in R if r[0] in [
-                b'car', b'bus', b'truck', b'motorbike']]
+                b'car', b'bus', b'truck']]
+                # b'car', b'bus', b'truck', b'motorbike']]
 
             print('\t\t%d vehicles found' % len(R))
 
