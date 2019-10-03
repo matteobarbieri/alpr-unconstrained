@@ -74,6 +74,7 @@ def choose_best_alternative(current_plate, new_plate_code,
     """
     current plate is a full plate dict, new_plate_code is just a string
     """
+    # TODO document
 
     # If current plate is not valid, return the other one
     if not current_plate['valid_plate']:
@@ -105,6 +106,7 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
     """
     Use the previous and following N frames to recover plates in current frame
     """
+    # TODO document
 
     plates_past = dict()
     plates_future = dict()
@@ -247,12 +249,24 @@ def recover_missing_plates(annotations_history, i, plates, window,  # noqa
 def remove_invalid_plates(plates):
     """
     Simply return only pates whose code is valid.
+
+    Parameters
+    ----------
+
+    plates : list
+        A list of dictionaries representing a plate.
+
+    Returns
+    -------
+    list
+        Elements from input list `plates` whose field 'valid_plate' is `True`.
     """
 
     return [p for p in plates if p['valid_plate']]
 
 
 def remove_duplicate_plates(plates, annotations_history):
+    # TODO document
 
     excluded_plates_indexes = list()
     unique_plates_list = list()
@@ -302,6 +316,22 @@ def associate_plate_to_vehicle(cars, plates):
 
     Also check that the bounding box of the license plate is inside the
     bounding box of the car it is assigned to.
+
+    Parameters
+    ----------
+
+    cars : list
+        The list of vehicles without any license plate annotation.
+
+    plates : list
+        The list of license plates detected in a frame.
+
+    Returns
+    -------
+
+    list
+        The list of vehicles updated with license plates associated to the
+        correct vehicle.
     """
 
     # Keep track of indexes of cars that have already been assigned
@@ -357,6 +387,7 @@ def most_similar_plate(target_plate, plate_list, max_distance=2):
     plate_list : list
         Each item is a dictionary
     """
+    # TODO document
 
     min_distance = np.inf
     mspi = None
