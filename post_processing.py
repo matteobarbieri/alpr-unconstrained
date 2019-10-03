@@ -10,8 +10,20 @@ def process_annotations(annotations_history, i, window, keep_invalid=False):
     Parameters
     ----------
 
-    annotations : dict
-        Dictionary containing detections already pruned from duplicates
+    annotations_history : list
+        Dictionary containing detections already pruned from duplicates.
+
+    i : int
+        The index for the annotations_history list which corresponds to the
+        annotations for current frame.
+
+    window : int
+        The number of frames (before and after the current one) to use to
+        improve the quality of the detections.
+
+    keep_invalid : bool, optional.
+        Whether to keep also invalid plates (that is those not matching the
+        regular expression). Default to `False`.
     """
 
     # Create a list of all cars and plates detected _in current frame_
